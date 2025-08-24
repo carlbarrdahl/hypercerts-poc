@@ -17,6 +17,10 @@ export function PrivyProvider({ children }: PrivyProviderProps) {
           theme: "light",
           accentColor: "#676FFF",
         },
+        embeddedWallets: {
+          createOnLogin: "users-without-wallets",
+          // showWalletUIs: false,
+        },
       }}
     >
       {children}

@@ -2,44 +2,40 @@
 
 import { Button } from "@workspace/ui/components/button";
 import { useHypercerts } from "@workspace/sdk";
-import { useAccount } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useAccount,
+  useSendTransaction,
+  useSwitchChain,
+  useWalletClient,
+} from "wagmi";
 import { useEffect } from "react";
+import { baseSepolia } from "wagmi/chains";
+import { useHypercertsAccount } from "@workspace/sdk";
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ accessToken: string }>;
-}) {
-  const { accessToken } = await searchParams;
+export default function Page() {
+  const { switchChain } = useSwitchChain();
+  useEffect(() => {
+    console.log("switching chain");
+    switchChain({ chainId: baseSepolia.id });
+  }, []);
 
-  console.log("accessToken", accessToken);
   return (
     <div>
       <div className="flex justify-center pt-24">
-        <LinkAccount accessToken={accessToken} />
+        <LinkAccount />
       </div>
     </div>
   );
 }
 
-function LinkAccount({ accessToken }: { accessToken?: string }) {
+
+function LinkAccount() {
   const { address } = useAccount();
   const { sdk } = useHypercerts();
 
-  const { data, isPending } = useQuery({
-    queryKey: ["account", address],
-    queryFn: () => sdk?.account.get(address!),
-    enabled: !!address,
-  });
+  const { data, isPending } = useHypercertsAccount(address!);
 
-  useEffect(() => {
-    if (accessToken) {
-      sdk?.account.setAccessToken(accessToken);
-    }
-  }, [accessToken]);
-
-  console.log("data", data, address, isPending);
+  console.log("data", data);
   if (isPending) return <div>Loading...</div>;
   if (!address) return <div>Connect your wallet</div>;
 
@@ -48,6 +44,7 @@ function LinkAccount({ accessToken }: { accessToken?: string }) {
       <div>
         Account linked
         <pre>{data.id}</pre>
+        <CreateOrganization />
       </div>
     );
   }
@@ -70,19 +67,28 @@ function LinkAccount({ accessToken }: { accessToken?: string }) {
   );
 }
 
-function Organization() {
+function CreateOrganization() {
   const { sdk } = useHypercerts();
-  const { data, isPending } = useQuery({
-    queryKey: ["organization"],
-    queryFn: () => sdk?.organization.list(),
-  });
+  const { address } = useAccount();
+  const { data: client } = useWalletClient();
 
-  if (isPending) return <div>Loading...</div>;
-  if (!data) return <div>No organization found</div>;
-
+  const { sendTransaction } = useSendTransaction();
+  console.log("client", client);
+  if (!address) return <div>Connect your wallet</div>;
   return (
     <div>
-      <pre>{JSON.stringify(data, null, 2)}</pre>
+      <Button
+        onClick={async () => {
+          console.log("creating organization", address, client);
+          const tx = await sdk?.organization.create(address);
+          console.log("tx", tx);
+          const txHash = await sendTransaction(tx!);
+          console.log("txHash", txHash);
+        }}
+      >
+        Create Organization
+      </Button>
     </div>
   );
 }
+

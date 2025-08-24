@@ -7,10 +7,12 @@ import { WagmiProvider, createConfig } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import { HypercertsProvider } from "@workspace/sdk";
+import { baseSepolia } from "wagmi/chains";
 
 const config = createConfig(
   getDefaultConfig({
     appName: "ConnectKit Next.js demo",
+    chains: [baseSepolia],
     walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
   })
 );

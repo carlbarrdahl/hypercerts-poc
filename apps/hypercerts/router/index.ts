@@ -27,37 +27,14 @@ const account = {
       const userId = context?.session?.userId!;
       console.log("Linking wallet", userId, address);
 
-      const user = await privy.getUserById(userId);
-
       const wallet =
         (await privy.getUserByWalletAddress(address)) ||
         (await privy.walletApi.createWallet({
           chainType: "ethereum",
           owner: { userId },
-          // additionalSigners: [{ signerId: userId }],
         }));
 
-      if (!wallet) {
-        throw new ORPCError("NOT_FOUND", {
-          message: "Wallet not found",
-        });
-      }
-
-      console.log(user, wallet);
-      // await privy.walletApi.updateWallet({
-      //   id: userId,
-      //   additionalSigners: [
-      //     {
-      //       signerId: address,
-      //       overridePolicyIds: ["default"],
-      //     },
-      //   ],
-      // });
-      return {};
-      // return privy.walletApi.createWallet({
-      //   chainType: "ethereum",
-      //   owner: { userId },
-      // });
+      return wallet;
     }),
 
   get: pub
@@ -205,7 +182,6 @@ const organization = {
       nextCursor = result.nextCursor;
     } while (nextCursor);
 
-    
     return wallets;
   }),
 };

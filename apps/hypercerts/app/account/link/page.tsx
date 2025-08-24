@@ -48,8 +48,7 @@ function LinkAccount({
   const { linkWallet } = useLinkAccount({
     onSuccess: async () => {
       toast.success("Account linked successfully");
-      const accessToken = await getAccessToken();
-      router.push(redirectUrl + "?accessToken=" + accessToken);
+      router.push(redirectUrl + "?status=success");
     },
     onError(error) {
       toast.error(error);
