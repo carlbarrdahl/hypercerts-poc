@@ -2,15 +2,24 @@ import ky from 'ky';
 import { Logger } from './lib/logger';
 import { initSafe } from './lib/safe';
 import { Eip1193Provider } from '@safe-global/protocol-kit';
-import { Address, Chain, createPublicClient, http, PublicClient } from 'viem';
+import {
+	Address,
+	Chain,
+	createPublicClient,
+	getAddress,
+	http,
+	PublicClient,
+	WalletClient,
+} from 'viem';
 import { Transaction } from '@safe-global/types-kit';
 import {
 	MetaTransactionData,
 	SafeTransaction,
 } from '@safe-global/safe-core-sdk-types';
 import { baseSepolia } from 'viem/chains';
+
 export { HypercertsProvider, useHypercerts } from './components/provider';
-export { useHypercertsAccount, useHypercertsOrganization } from './hooks';
+export * from './hooks';
 
 const HYPERCERTS_URL = 'http://localhost:3000';
 
@@ -20,6 +29,14 @@ const api = ky.create({
 
 const chains: Record<number, Chain> = {
 	[baseSepolia.id]: baseSepolia,
+};
+
+export type OrganizationAccount = {
+	version: string;
+	members: Address[];
+	threshold: number;
+	nonce: number;
+	address: Address;
 };
 
 const getRpcUrl = (publicClient: PublicClient) => {
@@ -60,18 +77,32 @@ export class HypercertSDK {
 		},
 	};
 	organization = {
-		get: async (owner: Address): Promise<Address> => {
-			Logger.info('Getting organization', owner);
+		get: async (safeAddress: Address): Promise<OrganizationAccount> => {
+			Logger.info('Getting organization with address:', safeAddress);
 			const provider = getRpcUrl(this.#publicClient);
-			const safe = await initSafe({ provider, owners: [owner] });
-			return await safe.getAddress();
+			const safe = await initSafe({ provider, safeAddress });
+
+			const version = await safe.getContractVersion();
+			const members = await safe.getOwners();
+			const threshold = await safe.getThreshold();
+			const nonce = await safe.getNonce();
+			const address = await safe.getAddress().then(getAddress);
+			return { version, address, nonce, threshold, members };
 		},
-		create: async (owner: Address): Promise<Transaction> => {
+		create: async (
+			owner: Address,
+		): Promise<OrganizationAccount & { tx: Transaction }> => {
 			Logger.info('Creating organization', owner);
 			const provider = getRpcUrl(this.#publicClient);
 			const safe = await initSafe({ provider, owners: [owner] });
-			return await safe.createSafeDeploymentTransaction();
+			console.log(safe)
+			const tx = await safe.createSafeDeploymentTransaction();
+			console.log(tx)
+			const account = await this.organization.get(await safe.getAddress());
+			console.log(account)
+			return { ...account, tx };
 		},
+
 		list: async (): Promise<{}> => {
 			Logger.info('Listing organizations');
 			return ky
@@ -82,20 +113,22 @@ export class HypercertSDK {
 			Logger.info('Getting organization members', address);
 			const provider = getRpcUrl(this.#publicClient);
 			const safe = await initSafe({ provider, owners: [address] });
-			return await safe.getOwners();
+			return await safe.getOwners().then((owners) => owners.map(getAddress));
 		},
-		updateMembers: async (
-			data: {
-				address: Address;
-				op: 'add' | 'remove';
-			},
-		): Promise<SafeTransaction | undefined> => {
+		updateMembers: async (data: {
+			safeAddress: Address;
+			address: Address;
+			op: 'add' | 'remove';
+		}): Promise<SafeTransaction | undefined> => {
 			Logger.info('Updating organization members', data);
-			const { address, op } = data;
+			const { safeAddress, address, op } = data;
 			const provider = getRpcUrl(this.#publicClient);
-			const safe = await initSafe({ provider, owners: [address] });
+			const safe = await initSafe({ provider, safeAddress });
 
+			console.log(await safe.getChainId());
+			console.log('safe', safe);
 			const owners = await safe.getOwners();
+			console.log('owners', owners);
 			// TODO: Check safe.getOwners() to see if the address is already part of the Organization
 			if (op === 'add')
 				return await safe.createAddOwnerTx({ ownerAddress: address });

@@ -31,10 +31,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             disableTransitionOnChange
             enableColorScheme
           >
-            <HypercertsProvider>
-
-            {children}
-            </HypercertsProvider>
+            <HypercertsProvider>{children}</HypercertsProvider>
           </NextThemesProvider>
         </ConnectKitProvider>
       </QueryClientProvider>

@@ -18,8 +18,9 @@ type HypercertsContextType = {
 
 export function HypercertsProvider({
 	children,
-}: PropsWithChildren): React.ReactNode {
-	const [sdk, setSdk] = useState<HypercertSDK | null>(new HypercertSDK());
+	chainId,
+}: PropsWithChildren<{ chainId: number }>): React.ReactNode {
+	const [sdk] = useState<HypercertSDK | null>(new HypercertSDK({ chainId }));
 	return (
 		<HypercertsContext.Provider value={{ sdk }}>
 			{children}

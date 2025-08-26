@@ -1,153 +1,59 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
 import Link from "next/link";
-import { usePrivy } from "@privy-io/react-auth";
-import { LoginButton } from "@/components/login-button";
-import { Input } from "@workspace/ui/components/input";
-import { Form, FormField } from "@workspace/ui/components/form";
-import { useForm } from "react-hook-form";
-import { orpc } from "@/lib/orpc";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSendTransaction, useWallets } from "@privy-io/react-auth";
 
-import { toast } from "sonner";
+import {
+  useHypercerts,
+  useHypercertsOrganization,
+  useHypercertsPrepareOrganization,
+} from "@workspace/sdk";
+import { Button } from "@workspace/ui/components/button";
+import { Address } from "viem";
 
 export default function Page() {
   return (
-    <div className="">
-      <ListOrganizations />
+    <div>
+      {/* <CreateOrganization /> */}
+      <Organisation />
     </div>
   );
 }
 
-
-
-function ListOrganizations() {
-  const { authenticated } = usePrivy();
-  const { data, isPending } = useQuery(
-    orpc.organization.list.queryOptions({
-      enabled: authenticated,
-    })
-  );
-  if (isPending)
-    return (
-      <div className="flex items-center justify-center h-48 border rounded w-full">
-        Loading organizations...
-      </div>
-    );
-
-  if (!data?.length)
-    return (
-      <div className="flex items-center justify-center h-48 border rounded w-full">
-        No organizations found
-        <CreateOrganization />
-      </div>
-    );
-
-  return (
-    <div>
-      <h3>Organizations</h3>
-      <div>
-        {data?.map((org) => (
-          <div key={org.id} className="border rounded p-2">
-            <Link href={`/org/${org.id}`}>
-            <div>
-
-            {org.id}
-            </div>
-            <div className="text-xs">
-              Owner: {org.ownerId}
-            </div>
-            <pre>{JSON.stringify(org, null, 2)}</pre>
-            </Link>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function useAddress() {
+  const { wallets, ready } = useWallets();
+  const wallet = wallets?.find((w) => w.walletClientType === "privy");
+  const address = wallet?.address as Address;
+  return { address, isPending: !ready };
 }
 
-function CreateOrganization() {
-  const queryClient = useQueryClient();
-  const { mutate } = useMutation(
-    orpc.organization.create.mutationOptions({
-      onSuccess() {
-        toast.success("Organization created successfully");
-        queryClient.invalidateQueries(orpc.organization.list.queryOptions());
-      },
-      onError(error) {
-        toast.error(error.message);
-      },
-    })
-  );
+function Organisation() {
+  const { address } = useAddress();
+  const { sdk } = useHypercerts();
+  const { data } = useHypercertsPrepareOrganization(address!);
+  const { sendTransaction } = useSendTransaction();
+  console.log({ data });
+  //   if (!data) return <div>Loading...</div>;
 
   return (
-    <div>
-      <Button
-        onClick={() => {
-          mutate({});
-        }}
-      >
-        Create Organization
-      </Button>
-    </div>
-  );
-}
+    <Button
+      onClick={async () => {
+        const tx = await sdk?.organization.create(address!);
 
-function UpdateOrganization({
-  defaultValues,
-}: {
-  defaultValues: { id: string; name?: string; description?: string };
-}) {
-  const form = useForm({
-    defaultValues: {
-      id: "",
-      name: defaultValues.name ?? "",
-      description: defaultValues.description ?? "",
-    },
-  });
-  const queryClient = useQueryClient();
-  const { mutate } = useMutation(
-    orpc.organization.update.mutationOptions({
-      onSuccess() {
-        toast.success("Organization created successfully");
-        queryClient.invalidateQueries(orpc.organization.list.queryOptions());
-      },
-      onError(error) {
-        toast.error(error.message);
-      },
-    })
+        console.log(tx);
+        // sendTransaction(tx!);
+      }}
+    >
+      Create Organization
+    </Button>
   );
-
   return (
     <div>
-      <h3>Update Organization</h3>
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit((values) => {
-            console.log(values);
-
-            mutate({ ...values, id: defaultValues.id });
-          })}
-        >
-          {defaultValues.id && <Input type="hidden" value={defaultValues.id} />}
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <Input placeholder="Organization Name" {...field} />
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <Input placeholder="Organization Description" {...field} />
-            )}
-          />
-          <Button type="submit">Update</Button>
-        </form>
-      </Form>
+      <Link href={`/org/${data.address}`}>
+        <pre className="border rounded p-2 hover:bg-muted">
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      </Link>
     </div>
   );
 }

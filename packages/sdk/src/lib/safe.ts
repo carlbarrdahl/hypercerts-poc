@@ -4,9 +4,18 @@ import { Address } from 'viem';
 
 export async function initSafe(data: {
 	provider: string;
-	owners: Address[];
+	owners?: Address[];
+	
+	safeAddress?: Address;
 }): Promise<Safe> {
-	const { provider, owners } = data;
+	const { provider, owners, safeAddress } = data;
+
+	if (safeAddress) {
+		return await Safe.init({ provider, safeAddress  });
+	}
+	if (!owners?.length) {
+		throw new Error('No owners provided');
+	}
 
 	return await Safe.init({
 		provider,
@@ -17,10 +26,13 @@ export async function initSafe(data: {
 				threshold: 1,
 			},
 			safeDeploymentConfig: {
-				saltNonce: '1',
+				saltNonce: '3',
 				safeVersion: '1.4.1',
 				deploymentType: 'canonical',
 			},
 		},
 	});
 }
+
+
+

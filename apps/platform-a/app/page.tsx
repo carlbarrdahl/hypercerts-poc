@@ -28,7 +28,6 @@ export default function Page() {
   );
 }
 
-
 function LinkAccount() {
   const { address } = useAccount();
   const { sdk } = useHypercerts();
@@ -79,11 +78,15 @@ function CreateOrganization() {
     <div>
       <Button
         onClick={async () => {
-          console.log("creating organization", address, client);
-          const tx = await sdk?.organization.create(address);
-          console.log("tx", tx);
-          const txHash = await sendTransaction(tx!);
-          console.log("txHash", txHash);
+          try {
+            console.log("creating organization", address, client);
+            const tx = await sdk?.organization.create(address);
+            console.log("tx", tx, sdk);
+            const txHash = await sendTransaction(tx!);
+            console.log("txHash", txHash);
+          } catch (error) {
+            console.error(error);
+          }
         }}
       >
         Create Organization
@@ -91,4 +94,3 @@ function CreateOrganization() {
     </div>
   );
 }
-
