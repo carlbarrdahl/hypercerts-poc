@@ -1,31 +1,21 @@
-# shadcn/ui monorepo template
+# Hypercerts PoC
 
-This template is for creating a monorepo with shadcn/ui.
+Proof of Concept to explore how to handle user accounts and organizations across multiple platforms.
 
-## Usage
+### Flows
+Basic:
+- [x] user logs in on Hypercerts
+- [ ] user creates Organization
+- [x] user logs in on Platform A
+- [x] user press link account (sdk.account.link)
+- [x] user creates attestation from Platform A
+- [x] user logs in on Platform B
+- [x] user links account (sdk.account.link)
+- [x] user can see their hypercerts/attestations
+- [x] user creates attestation that shows in all platforms and hypercerts app
+- [ ] user can see their organizations hypercerts
 
-```bash
-pnpm dlx shadcn@latest init
-```
-
-## Adding components
-
-To add components to your app, run the following command at the root of your `web` app:
-
-```bash
-pnpm dlx shadcn@latest add button -c apps/web
-```
-
-This will place the ui components in the `packages/ui/src/components` directory.
-
-## Tailwind
-
-Your `tailwind.config.ts` and `globals.css` are already set up to use the components from the `ui` package.
-
-## Using components
-
-To use the components in your app, import them from the `ui` package.
-
-```tsx
-import { Button } from "@workspace/ui/components/button"
-```
+Extra:
+- [ ] user creates attestation on behalf of Organization
+- [ ] user invites users to Organization via link
+- [ ] create Hypercerts Account + Organization from sdk
