@@ -7,8 +7,6 @@ import { LogIn, LogOut } from "lucide-react";
 export function LoginButton() {
   const { ready, authenticated, user, login, logout } = usePrivy();
 
-  console.log(user, ready, authenticated);
-
   if (!ready) {
     return (
       <Button variant="outline" disabled>

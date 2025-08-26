@@ -18,6 +18,8 @@ const privyRestAPI = ky.create({
   headers,
 });
 
+
+// Experimenting with Privy API to add signers but realized that it requires public keys
 export const extended = {
   keyQuorum: async (keyIds: string[]) => {
     const response = await privyRestAPI.post("key-quorum", {

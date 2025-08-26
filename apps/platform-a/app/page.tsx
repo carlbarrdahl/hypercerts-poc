@@ -1,16 +1,22 @@
 "use client";
 
 import { Button } from "@workspace/ui/components/button";
-import { useHypercerts } from "@workspace/sdk";
+import { useHypercerts, useHypercertsCreateAttestation } from "@workspace/sdk";
 import {
   useAccount,
   useSendTransaction,
   useSwitchChain,
   useWalletClient,
 } from "wagmi";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { baseSepolia } from "wagmi/chains";
-import { useHypercertsAccount } from "@workspace/sdk";
+import {
+  useHypercertsAccount,
+  useHypercertsAttestations,
+} from "@workspace/sdk";
+import { Address } from "viem";
+import { Input } from "@workspace/ui/components/input";
+import { cn } from "@workspace/ui/lib/utils";
 
 export default function Page() {
   const { switchChain } = useSwitchChain();
@@ -43,7 +49,8 @@ function LinkAccount() {
       <div>
         Account linked
         <pre>{data.id}</pre>
-        <CreateOrganization />
+        <Attestations />
+        {/* <CreateOrganization /> */}
       </div>
     );
   }
@@ -66,31 +73,103 @@ function LinkAccount() {
   );
 }
 
-function CreateOrganization() {
+function Attestations() {
   const { sdk } = useHypercerts();
   const { address } = useAccount();
-  const { data: client } = useWalletClient();
+  const { data: account } = useHypercertsAccount(address!);
+  console.log("account", account)
+  const { data, isPending } = useHypercertsAttestations(
+    {
+      where: {
+        attester: { in: account || [] },
+      },
+    },
+    {
+      enabled: !!address,
+    }
+  );
 
-  const { sendTransaction } = useSendTransaction();
-  console.log("client", client);
-  if (!address) return <div>Connect your wallet</div>;
+  console.log("data", data);
+
   return (
     <div>
-      <Button
-        onClick={async () => {
-          try {
-            console.log("creating organization", address, client);
-            const tx = await sdk?.organization.create(address);
-            console.log("tx", tx, sdk);
-            const txHash = await sendTransaction(tx!);
-            console.log("txHash", txHash);
-          } catch (error) {
-            console.error(error);
-          }
-        }}
+      <h3 className="font-bold">My Hypercerts</h3>
+      <div
+        className={cn("border rounded p-2 min-h-[200px]", {
+          "animate-pulse": isPending,
+        })}
       >
-        Create Organization
-      </Button>
+        {data?.map((a) => (
+          <div key={a.id}>
+            <pre>{JSON.stringify(a, null, 2)}</pre>
+          </div>
+        ))}
+      </div>
+      <CreateAttestation />
     </div>
   );
 }
+
+function CreateAttestation() {
+  const { sdk } = useHypercerts();
+  const { address } = useAccount();
+  const { data: client } = useWalletClient();
+  console.log("client", client);
+  const [text, setText] = useState("");
+  const {
+    mutate: createAttestation,
+    isPending,
+    error,
+  } = useHypercertsCreateAttestation(client!);
+  console.log({ isPending, error });
+  return (
+    <form
+      className="flex gap-2"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        createAttestation({
+          recipient: address as Address,
+          data: text,
+        });
+      }}
+    >
+      <Input
+        placeholder="Enter some text..."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <Button disabled={isPending || !text} isLoading={isPending} type="submit" loadingText="Creating...">
+        Create Attestation
+      </Button>
+    </form>
+  );
+}
+
+// function CreateOrganization() {
+//   const { sdk } = useHypercerts();
+//   const { address } = useAccount();
+//   const { data: client } = useWalletClient();
+
+//   const { sendTransaction } = useSendTransaction();
+//   console.log("client", client);
+//   if (!address) return <div>Connect your wallet</div>;
+//   return (
+//     <div>
+//       <Button
+//         onClick={async () => {
+//           try {
+//             console.log("creating organization", address, client);
+//             const tx = await sdk?.organization.create(address);
+//             console.log("tx", tx, sdk);
+//             const txHash = await sendTransaction(tx!);
+//             console.log("txHash", txHash);
+//           } catch (error) {
+//             console.error(error);
+//           }
+//         }}
+//       >
+//         Create Organization
+//       </Button>
+//     </div>
+//   );
+// }

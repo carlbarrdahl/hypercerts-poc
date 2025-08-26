@@ -5,13 +5,13 @@ import { Address } from 'viem';
 export async function initSafe(data: {
 	provider: string;
 	owners?: Address[];
-	
+
 	safeAddress?: Address;
 }): Promise<Safe> {
 	const { provider, owners, safeAddress } = data;
 
 	if (safeAddress) {
-		return await Safe.init({ provider, safeAddress  });
+		return await Safe.init({ provider, safeAddress });
 	}
 	if (!owners?.length) {
 		throw new Error('No owners provided');
@@ -33,6 +33,3 @@ export async function initSafe(data: {
 		},
 	});
 }
-
-
-

@@ -21,7 +21,6 @@ export function PrivyProvider({ children }: PrivyProviderProps) {
         },
         embeddedWallets: {
           createOnLogin: "users-without-wallets",
-          // showWalletUIs: false,
         },
       }}
     >

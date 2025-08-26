@@ -3,6 +3,7 @@ import { authed, pub } from "@/orpc";
 import { z } from "zod";
 import { privy } from "@/lib/privy";
 import { ORPCError } from "@orpc/server";
+import { Address } from "viem";
 
 const AccountSchema = z.object({});
 const OrganizationSchema = z.object({
@@ -17,25 +18,26 @@ const FilterSchema = z
   .optional();
 
 const account = {
-  link: authed
-    .input(
-      z.object({
-        address: z.string(),
-      })
-    )
-    .handler(async ({ input: { address }, context }) => {
-      const userId = context?.session?.userId!;
-      console.log("Linking wallet", userId, address);
+  // Link is done directly on the page (account/link/page.tsx)
+  // link: authed
+  //   .input(
+  //     z.object({
+  //       address: z.string(),
+  //     })
+  //   )
+  //   .handler(async ({ input: { address }, context }) => {
+  //     const userId = context?.session?.userId!;
+  //     console.log("Linking wallet", userId, address);
 
-      const wallet =
-        (await privy.getUserByWalletAddress(address)) ||
-        (await privy.walletApi.createWallet({
-          chainType: "ethereum",
-          owner: { userId },
-        }));
+  //     const wallet =
+  //       (await privy.getUserByWalletAddress(address)) ||
+  //       (await privy.walletApi.createWallet({
+  //         chainType: "ethereum",
+  //         owner: { userId },
+  //       }));
 
-      return wallet;
-    }),
+  //     return wallet;
+  //   }),
 
   get: pub
     .input(
@@ -43,32 +45,23 @@ const account = {
         address: z.string(),
       })
     )
-    .handler(async ({ input }) => privy.getUserByWalletAddress(input.address)),
+    .handler(async ({ input }) =>
+      privy
+        .getUserByWalletAddress(input.address)
+        .then(
+          (account) =>
+            account?.linkedAccounts
+              .map((a) => a.address)
+              .filter(Boolean) as Promise<Address[]>
+        )
+    ),
 };
 
-const certs = {
-  create: authed
-    .input(
-      z.object({
-        name: z.string(),
-        description: z.string().optional(),
-      })
-    )
-    .handler(async ({ input, context }) => {
-      // const userId = context?.session?.userId!;
-      // const { authorizationKey } = await privy.walletApi.generateUserSigner({
-      //   userJwt: context?.session?.accessToken!,
-      // });
-      // console.log(authorizationKey);
-      // return privy.walletApi.createWallet({
-      //   chainType: "ethereum",
-      //   owner: { userId },
-      //   authorizationKeyIds: [authorizationKey.id],
-      //   authorizationThreshold: 1,
-      // });
-    }),
-};
 
+// Experimenting with Privy API to create organizations as wallets.
+// The idea was to add members as key quorums but requires public keys and not sure how these would be created dynamically.
+
+// This code is not used currently.
 const organization = {
   create: authed
     .input(

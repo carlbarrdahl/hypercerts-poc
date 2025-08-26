@@ -73,9 +73,11 @@
 	],
 	"homepage": "https://github.com/username/repo-name#readme",
 	"dependencies": {
+		"@ethereum-attestation-service/eas-sdk": "2.7.0",
 		"@safe-global/protocol-kit": "^6.1.0",
 		"@safe-global/safe-core-sdk": "^3.3.5",
 		"@safe-global/safe-core-sdk-types": "^5.1.0",
+		"@urql/core": "^6.0.1",
 		"@zerodev/ecdsa-validator": "^5.4.9",
 		"@zerodev/sdk": "^5.4.41",
 		"ky": "^1.9.0",
