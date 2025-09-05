@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useSendTransaction } from "@privy-io/react-auth";
 
-import { useHypercerts, useHypercertsPrepareOrganization } from "@workspace/sdk";
+import {
+  useHypercerts,
+  useHypercertsPrepareOrganization,
+} from "@workspace/sdk";
 import { useAddress } from "../hooks/useAccount";
 
 export default function Page() {
@@ -15,16 +17,11 @@ export default function Page() {
   );
 }
 
-
-
-
 function Organisation() {
   const { address } = useAddress();
   const { sdk } = useHypercerts();
   // const { data } = useHypercertsOrganization(address!);
   const { data } = useHypercertsPrepareOrganization(address!);
-  const { sendTransaction } = useSendTransaction();
-console.log({ data})
   if (!data) return <div>Loading...</div>;
 
   // return <Button onClick={async () => {

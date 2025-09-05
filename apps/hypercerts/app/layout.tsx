@@ -1,30 +1,38 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono } from "next/font/google";
 
-import "@workspace/ui/globals.css"
-import { Providers } from "@/components/providers"
-import { Header } from "@/components/header"
+import "@workspace/ui/globals.css";
+import { Providers } from "@/components/providers";
+import { Header } from "@/components/header";
+import { config } from "@/config";
+import { cookieToInitialState } from "@account-kit/core";
+import { headers } from "next/headers";
 
 const fontSans = Geist({
   subsets: ["latin"],
   variable: "--font-sans",
-})
+});
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-})
+});
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
+  const initialState = cookieToInitialState(
+    config,
+    (await headers()).get("cookie") ?? undefined
+  );
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
       >
-        <Providers>
+        <Providers initialState={initialState}>
           <main className="max-w-screen-lg mx-auto min-h-svh">
             <Header />
             {children}
@@ -32,5 +40,5 @@ export default function RootLayout({
         </Providers>
       </body>
     </html>
-  )
+  );
 }

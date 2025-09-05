@@ -3,30 +3,34 @@
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { PrivyProvider } from "./privy-provider";
 import { Toaster } from "@workspace/ui/components/sonner";
-import { baseSepolia } from "viem/chains";
 import { HypercertsProvider } from "@workspace/sdk";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+import { AlchemyAccountProvider, AlchemyAccountsProviderProps } from "@account-kit/react";
+import { baseSepolia } from "@account-kit/infra";
+import { config } from "@/config";
+
+
+
+export function Providers({ children, initialState }: { children: React.ReactNode,   initialState?: AlchemyAccountsProviderProps["initialState"]; }) {
   const [queryClient] = React.useState(() => new QueryClient());
 
   return (
-    <PrivyProvider>
-      <NextThemesProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-        enableColorScheme
-      >
-        <QueryClientProvider client={queryClient}>
-          <HypercertsProvider chainId={baseSepolia.id}>
+    <QueryClientProvider client={queryClient}>
+      <AlchemyAccountProvider config={config} queryClient={queryClient} initialState={initialState}>
+        <HypercertsProvider chainId={baseSepolia.id}>
+          <NextThemesProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+            enableColorScheme
+          >
             {children}
-          </HypercertsProvider>
-          <Toaster />
-        </QueryClientProvider>
-      </NextThemesProvider>
-    </PrivyProvider>
+            <Toaster />
+          </NextThemesProvider>
+        </HypercertsProvider>
+      </AlchemyAccountProvider>
+    </QueryClientProvider>
   );
 }
