@@ -17,8 +17,8 @@ export function Providers({ children, initialState }: { children: React.ReactNod
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AlchemyAccountProvider config={config} queryClient={queryClient} initialState={initialState}>
-        <HypercertsProvider chainId={baseSepolia.id}>
+      {/* <AlchemyAccountProvider config={config} queryClient={queryClient} initialState={initialState}> */}
+        {/* <HypercertsProvider client={client}> */}
           <NextThemesProvider
             attribute="class"
             defaultTheme="system"
@@ -29,8 +29,8 @@ export function Providers({ children, initialState }: { children: React.ReactNod
             {children}
             <Toaster />
           </NextThemesProvider>
-        </HypercertsProvider>
-      </AlchemyAccountProvider>
+        {/* </HypercertsProvider> */}
+      {/* </AlchemyAccountProvider> */}
     </QueryClientProvider>
   );
 }

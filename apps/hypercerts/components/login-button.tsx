@@ -8,7 +8,39 @@ import {
   useSignerStatus,
   useUser,
 } from "@account-kit/react";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { burner } from "burner-connector";
+import { FaucetButton } from "./dev/faucet-button";
+
 export function LoginButton() {
+  const account = useAccount();
+  const { connect } = useConnect();
+  const { disconnect } = useDisconnect();
+  if (account.isConnected) {
+    return (
+      <div className="flex items-center gap-2">
+<FaucetButton />
+      <Button variant="default" onClick={() => disconnect()}>
+        Disconnect
+      </Button>
+      </div>
+    );
+  }
+  return (
+    <Button
+      variant="default"
+      onClick={() =>
+        connect({
+          connector: burner(),
+        })
+      }
+    >
+      Connect (dev)
+    </Button>
+  );
+}
+
+function LoginButtonAccountKit() {
   const user = useUser();
   const { openAuthModal } = useAuthModal();
   const { isInitializing } = useSignerStatus();
