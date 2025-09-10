@@ -1,14 +1,14 @@
 "use client";
 
-
 import { CreateVault } from "@/components/vault/create";
 import { MintTokens } from "@/components/dev/mint-tokens";
+import { VaultsList } from "@/components/vault/list";
 
 export default function Page() {
   return (
     <div>
       <CreateVault />
-      <MintTokens />
+      <VaultsList />
       {/* <Organisation /> */}
     </div>
   );

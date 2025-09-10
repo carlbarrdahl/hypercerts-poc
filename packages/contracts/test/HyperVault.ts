@@ -1,10 +1,22 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { parseEventLogs } from "viem";
 
 import { network } from "hardhat";
 
 describe("HyperVault", async function () {
   const { viem } = await network.connect();
+  const deployments = JSON.parse(
+    readFileSync(
+      resolve(process.cwd(), "../../apps/hypercerts/contracts/deployments.json"),
+      "utf8",
+    ),
+  );
+  const createdEventAbi = deployments["31337"]["HyperVaultFactory"].abi.filter(
+    (x: any) => x.type === "event" && x.name === "Created",
+  );
 
   it("deposit pushes upstream to parent and mints shares on child", async function () {
     const wallets = await viem.getWalletClients();
@@ -12,23 +24,33 @@ describe("HyperVault", async function () {
 
     const token = await viem.deployContract("TestToken");
 
-    const parent = await viem.deployContract("HyperVault", [
-      {
-        asset: token.address,
-        parent: "0x0000000000000000000000000000000000000000",
-        percent: 0n,
-        metadata: "",
-      },
-    ]);
+    const deployerContract = await viem.deployContract("HyperVaultFactory");
 
-    const child = await viem.deployContract("HyperVault", [
-      {
-        asset: token.address,
-        parent: parent.address,
-        percent: 1000n, // 10%
-        metadata: "",
-      },
-    ]);
+    const rootConfig = {
+      asset: token.address,
+      parent: "0x0000000000000000000000000000000000000000",
+      percent: 0n,
+      metadata: "",
+    } as const;
+    const rootTx = await deployerContract.write.create([rootConfig], { account: deployer.account });
+    const publicClient = await viem.getPublicClient();
+    const rootReceipt = await publicClient.waitForTransactionReceipt({ hash: rootTx });
+
+    const rootEvents = parseEventLogs({ abi: createdEventAbi, logs: rootReceipt.logs });
+    const parentAddress = (rootEvents[0]!.args as any).id as `0x${string}`;
+    const parent = await viem.getContractAt("HyperVault", parentAddress);
+
+    const childConfig = {
+      asset: token.address,
+      parent: parent.address,
+      percent: 1000n,
+      metadata: "",
+    } as const;
+    const childTx = await deployerContract.write.create([childConfig], { account: deployer.account });
+    const childReceipt = await publicClient.waitForTransactionReceipt({ hash: childTx });
+    const childEvents = parseEventLogs({ abi: createdEventAbi, logs: childReceipt.logs });
+    const childAddress = (childEvents[0]!.args as any).id as `0x${string}`;
+    const child = await viem.getContractAt("HyperVault", childAddress);
 
     const amount = 100n * 10n ** 18n;
 
@@ -55,22 +77,32 @@ describe("HyperVault", async function () {
     const [deployer, alice] = wallets;
 
     const token = await viem.deployContract("TestToken");
-    const parent = await viem.deployContract("HyperVault", [
-      {
-        asset: token.address,
-        parent: "0x0000000000000000000000000000000000000000",
-        percent: 0n,
-        metadata: "",
-      },
-    ]);
-    const child = await viem.deployContract("HyperVault", [
-      {
-        asset: token.address,
-        parent: parent.address,
-        percent: 1000n, // 10%
-        metadata: "",
-      },
-    ]);
+    const deployerContract = await viem.deployContract("HyperVaultFactory");
+    const publicClient = await viem.getPublicClient();
+
+    const rootConfig = {
+      asset: token.address,
+      parent: "0x0000000000000000000000000000000000000000",
+      percent: 0n,
+      metadata: "",
+    } as const;
+    const rootTx = await deployerContract.write.create([rootConfig], { account: deployer.account });
+    const rootReceipt = await publicClient.waitForTransactionReceipt({ hash: rootTx });
+    const rootEvents = parseEventLogs({ abi: createdEventAbi, logs: rootReceipt.logs });
+    const parentAddress = (rootEvents[0]!.args as any).id as `0x${string}`;
+    const parent = await viem.getContractAt("HyperVault", parentAddress);
+
+    const childConfig = {
+      asset: token.address,
+      parent: parent.address,
+      percent: 1000n,
+      metadata: "",
+    } as const;
+    const childTx = await deployerContract.write.create([childConfig], { account: deployer.account });
+    const childReceipt = await publicClient.waitForTransactionReceipt({ hash: childTx });
+    const childEvents = parseEventLogs({ abi: createdEventAbi, logs: childReceipt.logs });
+    const childAddress = (childEvents[0]!.args as any).id as `0x${string}`;
+    const child = await viem.getContractAt("HyperVault", childAddress);
 
     const amount = 100n * 10n ** 18n;
     await token.write.mint([alice.account.address, amount], { account: deployer.account });
@@ -90,33 +122,43 @@ describe("HyperVault", async function () {
     const [deployer, alice] = wallets;
 
     const token = await viem.deployContract("TestToken");
+    const deployerContract = await viem.deployContract("HyperVaultFactory");
+    const publicClient = await viem.getPublicClient();
+    const rootConfig = {
+      asset: token.address,
+      parent: "0x0000000000000000000000000000000000000000",
+      percent: 0n,
+      metadata: "",
+    } as const;
+    const rootTx = await deployerContract.write.create([rootConfig], { account: deployer.account });
+    const rootReceipt = await publicClient.waitForTransactionReceipt({ hash: rootTx });
+    const rootEvents = parseEventLogs({ abi: createdEventAbi, logs: rootReceipt.logs });
+    const rootAddress = (rootEvents[0]!.args as any).id as `0x${string}`;
+    const root = await viem.getContractAt("HyperVault", rootAddress);
 
-    const root = await viem.deployContract("HyperVault", [
-      {
-        asset: token.address,
-        parent: "0x0000000000000000000000000000000000000000",
-        percent: 0n,
-        metadata: "",
-      },
-    ]);
+    const middleConfig = {
+      asset: token.address,
+      parent: root.address,
+      percent: 1000n,
+      metadata: "",
+    } as const;
+    const middleTx = await deployerContract.write.create([middleConfig], { account: deployer.account });
+    const middleReceipt = await publicClient.waitForTransactionReceipt({ hash: middleTx });
+    const middleEvents = parseEventLogs({ abi: createdEventAbi, logs: middleReceipt.logs });
+    const middleAddress = (middleEvents[0]!.args as any).id as `0x${string}`;
+    const middle = await viem.getContractAt("HyperVault", middleAddress);
 
-    const middle = await viem.deployContract("HyperVault", [
-      {
-        asset: token.address,
-        parent: root.address,
-        percent: 1000n, // 10%
-        metadata: "",
-      },
-    ]);
-
-    const leaf = await viem.deployContract("HyperVault", [
-      {
-        asset: token.address,
-        parent: middle.address,
-        percent: 1000n, // 10%
-        metadata: "",
-      },
-    ]);
+    const leafConfig = {
+      asset: token.address,
+      parent: middle.address,
+      percent: 1000n,
+      metadata: "",
+    } as const;
+    const leafTx = await deployerContract.write.create([leafConfig], { account: deployer.account });
+    const leafReceipt = await publicClient.waitForTransactionReceipt({ hash: leafTx });
+    const leafEvents = parseEventLogs({ abi: createdEventAbi, logs: leafReceipt.logs });
+    const leafAddress = (leafEvents[0]!.args as any).id as `0x${string}`;
+    const leaf = await viem.getContractAt("HyperVault", leafAddress);
 
     const amount = 100n * 10n ** 18n;
     await token.write.mint([alice.account.address, amount], { account: deployer.account });

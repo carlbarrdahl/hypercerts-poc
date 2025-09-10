@@ -7,12 +7,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { burner } from "burner-connector";
 import { HypercertsProvider } from "@workspace/sdk";
 import { hardhat } from "viem/chains";
+import { baseSepolia } from "@account-kit/infra";
 
+const defaultChain = baseSepolia;
 const config = createConfig({
-  chains: [hardhat],
+  chains: [defaultChain],
   connectors: [burner()],
   transports: {
-    [hardhat.id]: http(),
+    [defaultChain.id]: http(),
   },
 });
 

@@ -28,7 +28,7 @@ export const config = createConfig(
       ],
       addPasskeyOnSignup: false,
     },
-  },
+  }
 );
 
 export const queryClient = new QueryClient();

@@ -1,24 +1,37 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 struct Config {
     IERC20 asset;
     HyperVault parent;
+    address owner;
     uint256 percent;
+    uint256 shares;
     string metadata;
 }
 
-contract HyperVaultDeployer {
-    event Created(Config config);
+contract HyperVaultFactory {
+    event Created(address indexed id, Config config);
+
+    address public immutable implementation;
+
+    constructor() {
+        implementation = address(new HyperVault());
+    }
 
     function create(Config memory config) external returns (HyperVault) {
-        return new HyperVault(config);
+        address clone = Clones.clone(implementation);
+        HyperVault(clone).initialize(config);
+        emit Created(clone, config);
+        return HyperVault(clone);
     }
 }
 
@@ -27,140 +40,47 @@ contract HyperVaultDeployer {
  * @notice ERC4626 vault that can have a parent vault, creating a tree structure
  * @dev Each vault has its own token, but pushes value to parent
  */
-contract HyperVault is ERC4626 {
+contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     Config public config;
-    HyperVault public immutable parent;
-    uint256 public immutable percent; // Basis points (10000 = 100%)
 
-    mapping(address => bool) public isChildVault;
-    uint256 public totalUpstreamSent;
+    event Funded(
+        address indexed sender,
+        address indexed owner,
+        uint256 assets
+        // uint256 assetsToParent
+    );
 
-    uint256 public constant MAX_FEE = 10000;
+    constructor() {
+        _disableInitializers();
+    }
 
-    event ValuePushedUpstream(address indexed parent, uint256 amount);
-    event ChildVaultRegistered(address indexed child);
-    event Funded(address indexed from, uint256 amount);
+    function initialize(Config memory config_) public initializer {
+        __ERC20_init("Hypercert", "cert");
+        __ERC4626_init(config_.asset);
 
-    constructor(
-        Config memory config_
-    )
-        ERC20(
-            "Hypercert",
-           "cert"
-        )
-        ERC4626(config_.asset)
-    {
-        require(config_.percent <= MAX_FEE, "Upstream percent too high");
         config = config_;
-        parent = config_.parent;
-        percent = config_.percent;
-        // Register with parent if exists
-        if (address(config_.parent) != address(0)) {
-            config_.parent.registerChild();
+
+        if (config_.shares > 0) {
+            _mint(config_.owner, config_.shares);
+            emit Deposit(config_.owner, config_.owner, 0, config_.shares);
         }
     }
 
-    /**
-     * @notice Register a child vault (called by child's constructor)
-     */
-    function registerChild() external {
-        isChildVault[msg.sender] = true;
-        emit ChildVaultRegistered(msg.sender);
-    }
-
-    /**
-     * @notice Deposit with automatic upstream value push
-     */
-    function deposit(
-        uint256 assets,
-        address receiver
-    ) public virtual override returns (uint256 shares) {
-        // Calculate upstream amount
-        uint256 upstreamAmount = 0;
-        if (address(parent) != address(0) && percent > 0) {
-            upstreamAmount = (assets * percent) / MAX_FEE;
-        }
-
-        // Calculate shares based on assets AFTER upstream cut
-        uint256 netAssets = assets - upstreamAmount;
-        shares = previewDeposit(netAssets);
-
-        // Transfer full amount from depositor
-        IERC20(asset()).safeTransferFrom(msg.sender, address(this), assets);
-
-        // Push value upstream if applicable
-        if (upstreamAmount > 0) {
-            _pushValueUpstream(upstreamAmount);
-        }
-
-        // Mint shares to receiver based on net assets
-        _mint(receiver, shares);
-
-        emit Deposit(msg.sender, receiver, netAssets, shares);
-        return shares;
-    }
-
-    /**
-     * @notice Fund - adds value to THIS vault and optionally pushes upstream
-     * @param assets Amount to deposit as fund
-     * @param pushUpstream Whether to also benefit parent vaults
-     */
     function fund(
         uint256 assets,
-        bool pushUpstream
-    ) external returns (uint256 totalValueAdded) {
+        address receiver
+    ) external nonReentrant returns (uint256) {
+        require(assets > 0, "HyperVault: zero assets");
+
+        // Transfer underlying from caller into vault
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), assets);
 
-        uint256 upstreamAmount = 0;
-        if (pushUpstream && address(parent) != address(0) && percent > 0) {
-            upstreamAmount = (assets * percent) / MAX_FEE;
-            _pushValueUpstream(upstreamAmount);
-        }
+        emit Funded(msg.sender, receiver, assets);
 
-        // The rest stays in this vault, benefiting local holders
-        uint256 localValue = assets - upstreamAmount;
-
-        emit Funded(msg.sender, localValue);
+        // Return assets to keep signature/return shape similar to deposit (deposit returns shares,
+        // but fund does not mint shares so we return the assets transferred).
         return assets;
-    }
-
-    /**
-     * @notice Push value to parent vault
-     * @dev This benefits all holders in the parent vault
-     */
-    function _pushValueUpstream(uint256 amount) internal {
-        if (address(parent) == address(0) || amount == 0) return;
-
-        // Approve parent vault to take assets
-        IERC20(asset()).approve(address(parent), amount);
-
-        // Deposit as grant to parent (no shares received)
-        parent.fund(amount, true); // Recursively push upstream
-
-        totalUpstreamSent += amount;
-        emit ValuePushedUpstream(address(parent), amount);
-    }
-
-    /**
-     * @notice Get this vault's position in the tree
-     * @return level 0 for root, increases down the tree
-     */
-    function getTreeLevel() external view returns (uint256 level) {
-        HyperVault current = this;
-        while (address(current.parent()) != address(0)) {
-            level++;
-            current = current.parent();
-        }
-        return level;
-    }
-
-    /**
-     * @notice Calculate total value including downstream vaults
-     * @dev This is just local value, children track their own
-     */
-    function totalAssets() public view virtual override returns (uint256) {
-        return IERC20(asset()).balanceOf(address(this));
     }
 }

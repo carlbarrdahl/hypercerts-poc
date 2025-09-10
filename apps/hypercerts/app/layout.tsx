@@ -3,9 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "@workspace/ui/globals.css";
 import { Providers } from "@/components/providers-local";
 import { Header } from "@/components/header";
-import { config } from "@/config";
-// import { cookieToInitialState } from "@account-kit/core";
-import { headers } from "next/headers";
+import { MintTokens } from "@/components/dev/mint-tokens";
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -32,12 +30,16 @@ export default async function RootLayout({
       <body
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
       >
-        <Providers 
+        <Providers
         // initialState={initialState}
         >
           <main className="max-w-screen-lg mx-auto min-h-svh">
             <Header />
             {children}
+
+            <div className="mt-10">
+              <MintTokens />
+            </div>
           </main>
         </Providers>
       </body>

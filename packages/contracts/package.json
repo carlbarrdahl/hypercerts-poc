@@ -6,7 +6,8 @@
     "dev": "npx hardhat node",
     "build": "npx hardhat compile",
     "test": "npx hardhat test nodejs",
-    "deploy": "npx hardhat ignition deploy ignition/modules/HyperVault.ts --network localhost",
+    "deploy": "npm run build && npx hardhat ignition deploy ignition/modules/HyperVault.ts --network localhost --reset && npm run generate-abi",
+    "generate-abi": "bun run scripts/generate-abi.ts",
     "lint": "forge fmt",
     "lint:fix": "forge fmt --fix"
   },

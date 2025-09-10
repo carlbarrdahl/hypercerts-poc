@@ -1,6 +1,8 @@
 import { Address, erc20Abi, formatUnits, zeroAddress } from "viem";
 import {
   useAccount,
+  useBalance,
+  useChainId,
   useReadContract,
   useReadContracts,
   useWriteContract,
@@ -21,7 +23,10 @@ type UseTokenResult = Omit<ReturnType<typeof useReadContracts>, "data"> & {
   query: { enabled: boolean };
 };
 
-type UseApproveResult = Omit<ReturnType<typeof useWriteContract>, "writeContractAsync"> & {
+type UseApproveResult = Omit<
+  ReturnType<typeof useWriteContract>,
+  "writeContractAsync"
+> & {
   writeContractAsync: (amount?: bigint) => Promise<unknown>;
 };
 
@@ -33,7 +38,9 @@ export function useToken(address?: Address, account?: Address): UseTokenResult {
     contracts: [
       { ...contract, functionName: "symbol" },
       { ...contract, functionName: "decimals" },
-      ...(account ? [{ ...contract, functionName: "balanceOf", args: [account] }] : []),
+      ...(account
+        ? [{ ...contract, functionName: "balanceOf", args: [account] }]
+        : []),
     ],
   });
 
@@ -58,7 +65,11 @@ export function useToken(address?: Address, account?: Address): UseTokenResult {
 }
 
 // Check token allowance for owner and spender
-export function useAllowance(token: Address, owner: Address | undefined, spender: Address) {
+export function useAllowance(
+  token: Address,
+  owner: Address | undefined,
+  spender: Address
+) {
   return useReadContract({
     abi: erc20Abi,
     address: token,
@@ -72,13 +83,16 @@ export function useAllowance(token: Address, owner: Address | undefined, spender
 export function useApprove(token: Address, spender: Address): UseApproveResult {
   const queryClient = useQueryClient();
   const approve = useWriteContract();
-  const { queryKey } = useAllowance(token, useAccount().address, spender);
+  const { address } = useAccount();
+  const { queryKey: balanceQueryKey } = useToken(token, address);
+  const { queryKey: allowanceQueryKey } = useAllowance(token, address, spender);
   const waitForEvent = useWaitForEvent(erc20Abi);
 
   return {
     ...approve,
-    writeContractAsync: (amount = 0n) =>
-      approve
+    writeContractAsync: (amount = 0n) => {
+      console.log("approving", { spender, amount, token });
+      return approve
         .writeContractAsync({
           address: token,
           abi: erc20Abi,
@@ -87,8 +101,10 @@ export function useApprove(token: Address, spender: Address): UseApproveResult {
         })
         .then(async (hash) => {
           const logs = await waitForEvent(hash, "Approval");
-          await queryClient.invalidateQueries({ queryKey });
+          await queryClient.invalidateQueries({ queryKey: allowanceQueryKey });
+          await queryClient.invalidateQueries({ queryKey: balanceQueryKey });
           return logs;
-        }),
+        });
+    },
   };
 }

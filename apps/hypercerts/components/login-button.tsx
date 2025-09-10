@@ -19,10 +19,10 @@ export function LoginButton() {
   if (account.isConnected) {
     return (
       <div className="flex items-center gap-2">
-<FaucetButton />
-      <Button variant="default" onClick={() => disconnect()}>
-        Disconnect
-      </Button>
+        <FaucetButton />
+        <Button variant="default" onClick={() => disconnect()}>
+          Disconnect
+        </Button>
       </div>
     );
   }

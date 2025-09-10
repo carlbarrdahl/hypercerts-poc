@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { getAddress, parseEventLogs } from "viem";
 
-describe("HyperVaultDeployer - create()", async function () {
+describe("HyperVaultFactory - create()", async function () {
   const { viem } = await network.connect();
 
   it("creates a HyperVault, emits Created, and sets correct config", async function () {
@@ -12,7 +12,7 @@ describe("HyperVaultDeployer - create()", async function () {
     const [deployer, alice] = wallets;
 
     const token = await viem.deployContract("TestToken");
-    const deployerContract = await viem.deployContract("HyperVaultDeployer");
+    const deployerContract = await viem.deployContract("HyperVaultFactory");
 
     // Create a root vault (no parent)
     const rootConfig = {

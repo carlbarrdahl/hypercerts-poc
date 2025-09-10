@@ -74,6 +74,8 @@
 	"homepage": "https://github.com/username/repo-name#readme",
 	"dependencies": {
 		"@aa-sdk/core": "^4.60.1",
+		"@account-kit/infra": "^4.59.1",
+		"@account-kit/smart-contracts": "^4.62.0",
 		"@cometh/connect-sdk-4337": "^1.0.17",
 		"@ethereum-attestation-service/eas-sdk": "2.7.0",
 		"@safe-global/protocol-kit": "^6.1.0",

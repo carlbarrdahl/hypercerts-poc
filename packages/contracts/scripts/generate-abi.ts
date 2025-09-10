@@ -32,7 +32,9 @@ function parseChainIdFromDirName(dirName: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-async function readChainIdFromJournal(journalPath: string): Promise<number | null> {
+async function readChainIdFromJournal(
+  journalPath: string
+): Promise<number | null> {
   try {
     const content = await fs.readFile(journalPath, "utf-8");
     // The journal is JSONL; find the first line with a chainId
@@ -51,17 +53,25 @@ async function readChainIdFromJournal(journalPath: string): Promise<number | nul
   return null;
 }
 
-async function discoverChainDirectories(deploymentsRoot: string): Promise<string[]> {
+async function discoverChainDirectories(
+  deploymentsRoot: string
+): Promise<string[]> {
   const entries = await fs.readdir(deploymentsRoot, { withFileTypes: true });
-  return entries.filter((e) => e.isDirectory()).map((e) => path.join(deploymentsRoot, e.name));
+  return entries
+    .filter((e) => e.isDirectory())
+    .map((e) => path.join(deploymentsRoot, e.name));
 }
 
-async function collectContractsForChain(chainDir: string): Promise<{ chainId: number; contracts: ContractsByName } | null> {
+async function collectContractsForChain(
+  chainDir: string
+): Promise<{ chainId: number; contracts: ContractsByName } | null> {
   const dirName = path.basename(chainDir);
   let chainId = parseChainIdFromDirName(dirName);
   if (!chainId) {
     const journalPath = path.join(chainDir, "journal.jsonl");
-    chainId = (await readChainIdFromJournal(journalPath)) ?? undefined as unknown as number;
+    chainId =
+      (await readChainIdFromJournal(journalPath)) ??
+      (undefined as unknown as number);
   }
   if (!chainId) return null;
 
@@ -78,11 +88,19 @@ async function collectContractsForChain(chainDir: string): Promise<{ chainId: nu
     try {
       // moduleAndName like "CounterModule#Counter"
       const artifactPath = path.join(artifactsDir, `${moduleAndName}.json`);
-      const artifact = await readJson<{ contractName: string; abi: AbiItem[] }>(artifactPath);
-      const contractName = artifact.contractName || moduleAndName.split("#").pop() || moduleAndName;
+      const artifact = await readJson<{ contractName: string; abi: AbiItem[] }>(
+        artifactPath
+      );
+      const contractName =
+        artifact.contractName ||
+        moduleAndName.split("#").pop() ||
+        moduleAndName;
       contracts[contractName] = { address, abi: artifact.abi };
     } catch (err) {
-      console.warn(`Warning: failed to load artifact for ${moduleAndName} at chain dir ${dirName}:`, err);
+      console.warn(
+        `Warning: failed to load artifact for ${moduleAndName} at chain dir ${dirName}:`,
+        err
+      );
     }
   }
 
@@ -94,7 +112,10 @@ async function ensureDirectoryForFile(filePath: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
 }
 
-async function writeOutput(destinations: string[], data: DeploymentsOutput): Promise<void> {
+async function writeOutput(
+  destinations: string[],
+  data: DeploymentsOutput
+): Promise<void> {
   for (const dest of destinations) {
     try {
       await ensureDirectoryForFile(dest);
@@ -122,13 +143,22 @@ async function main(): Promise<void> {
   const repoRoot = path.resolve(__dirname, "..", "..", "..");
   const defaultDestinations = [
     path.join(repoRoot, "apps", "hypercerts", "contracts", "deployments.json"),
+    path.join(repoRoot, "packages", "contracts", "deployments.json"),
     path.join(repoRoot, "packages", "sdk", "src", "deployments.json"),
     path.join(repoRoot, "packages", "indexer", "abis", "deployments.json"),
   ];
 
-  const destinations = destinationsFromArgs.length > 0 ? destinationsFromArgs : defaultDestinations;
+  const destinations =
+    destinationsFromArgs.length > 0
+      ? destinationsFromArgs
+      : defaultDestinations;
 
-  const deploymentsRoot = path.resolve(__dirname, "..", "ignition", "deployments");
+  const deploymentsRoot = path.resolve(
+    __dirname,
+    "..",
+    "ignition",
+    "deployments"
+  );
   if (!(await pathExists(deploymentsRoot))) {
     throw new Error(`Deployments folder not found: ${deploymentsRoot}`);
   }
@@ -156,5 +186,3 @@ main().catch((err) => {
   console.error(err);
   process.exitCode = 1;
 });
-
-

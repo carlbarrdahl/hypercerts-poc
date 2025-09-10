@@ -1,16 +1,62 @@
 import { useHypercerts } from '../components/provider';
-import {
-	useMutation,
-	UseMutationResult,
-	useQuery,
-	UseQueryResult,
-} from '@tanstack/react-query';
-import { Address } from 'viem';
+import { useMutation, useQuery, UseQueryResult } from '@tanstack/react-query';
 // import { OrganizationAccount } from '..';
-import { Attestation, AttestationQuery } from '../lib/graphql';
-import { AttestationInput } from '../lib/eas';
-import { Transaction } from 'viem';
-import { TransactionSigner } from '@ethereum-attestation-service/eas-sdk';
+import { HyperVaultConfig } from '..';
+import {
+	ContributorsVariables,
+	VaultPage,
+	VaultsVariables,
+} from '../lib/indexer';
+import { ContributorPage } from '../lib/indexer';
+
+type Opts = {
+	enabled?: boolean;
+	refetchInterval?: number;
+	select?: (data: any) => any;
+};
+export function useCreateHypercerts() {
+	const { sdk } = useHypercerts();
+	return useMutation({
+		mutationFn: async (config: HyperVaultConfig) => sdk?.vault.create(config),
+	});
+}
+
+export function useListHypercerts(
+	variables: VaultsVariables,
+	opts?: Opts,
+): UseQueryResult<VaultPage | null | undefined, Error> {
+	const { sdk } = useHypercerts();
+	return useQuery({
+		queryKey: ['vaults', { variables }],
+		queryFn: () => sdk?.indexer.vault.query(variables),
+		...opts,
+	});
+}
+
+export function useListContributors(
+	variables: ContributorsVariables,
+	opts?: Opts,
+): UseQueryResult<ContributorPage | null | undefined, Error> {
+	const { sdk } = useHypercerts();
+	return useQuery({
+		queryKey: ['contributors', { variables }],
+		queryFn: () => sdk?.indexer.contributor.query(variables),
+
+		...opts,
+	});
+}
+
+export function useListFunders(
+	variables: ContributorsVariables,
+	opts?: { enabled?: boolean; refetchInterval?: number },
+): UseQueryResult<ContributorPage | null | undefined, Error> {
+	const { sdk } = useHypercerts();
+	return useQuery({
+		queryKey: ['funders', { variables }],
+		queryFn: () => sdk?.indexer.funder.query(variables),
+		...opts,
+	});
+}
 
 // export function useHypercertsAccount(
 // 	address: Address,
@@ -57,7 +103,7 @@ import { TransactionSigner } from '@ethereum-attestation-service/eas-sdk';
 
 // export function useHypercertsAttestations(
 // 	query: AttestationQuery,
-// 	opts: { enabled?: boolean },
+// 	opts?: { enabled?: boolean },
 // ): UseQueryResult<Attestation[] | undefined, Error> {
 // 	const { sdk } = useHypercerts();
 // 	return useQuery({
