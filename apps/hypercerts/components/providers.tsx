@@ -9,9 +9,11 @@ import { HypercertsProvider } from "@workspace/sdk";
 import {
   AlchemyAccountProvider,
   AlchemyAccountsProviderProps,
+  useSmartAccountClient,
 } from "@account-kit/react";
 import { baseSepolia } from "@account-kit/infra";
 import { config } from "@/config";
+import { useWalletClient } from "wagmi";
 
 export function Providers({
   children,
@@ -33,20 +35,31 @@ export function Providers({
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* <AlchemyAccountProvider config={config} queryClient={queryClient} initialState={initialState}> */}
-      {/* <HypercertsProvider client={client}> */}
-      <NextThemesProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-        enableColorScheme
+      <AlchemyAccountProvider
+        config={config}
+        queryClient={queryClient}
+        initialState={initialState}
       >
-        {children}
-        <Toaster />
-      </NextThemesProvider>
-      {/* </HypercertsProvider> */}
-      {/* </AlchemyAccountProvider> */}
+        {/* <Hypercerts> */}
+        <NextThemesProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+          enableColorScheme
+        >
+          {children}
+          <Toaster />
+        </NextThemesProvider>
+        {/* </Hypercerts> */}
+      </AlchemyAccountProvider>
     </QueryClientProvider>
   );
+}
+
+function Hypercerts({ children }: { children: React.ReactNode }) {
+  // const { data: client } = useSmartAccountClient();
+  const { data: client } = useWalletClient();
+  if (!client) return <div>Loading...</div>;
+  return <HypercertsProvider client={client}>{children}</HypercertsProvider>;
 }

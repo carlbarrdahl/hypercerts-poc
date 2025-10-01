@@ -12,9 +12,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aa-sdk/core": "^4.60.1",
     "@account-kit/core": "^4.59.1",
     "@account-kit/infra": "^4.59.1",
     "@account-kit/react": "^4.59.1",
+    "@account-kit/smart-contracts": "^4.62.0",
     "@hookform/resolvers": "^5.2.1",
     "@orpc/client": "^1.8.4",
     "@orpc/json-schema": "^1.8.4",

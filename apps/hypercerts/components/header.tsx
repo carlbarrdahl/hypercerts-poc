@@ -12,9 +12,8 @@ export function Header() {
         <Link href="/account">
           <Button variant="link">Account</Button>
         </Link>
-        
       </div>
-      <LoginButton />
+      {/* <LoginButton /> */}
     </header>
   );
 }

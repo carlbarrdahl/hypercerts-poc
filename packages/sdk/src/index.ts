@@ -105,6 +105,7 @@ export class HypercertsSDK {
 	test?: { token: Address };
 	constructor(wallet?: WalletClient) {
 		const chain = wallet?.chain;
+		console.log(wallet);
 		if (!wallet || !chain?.id) throw new Error('Chain ID not found');
 		if (!Object.keys(config).includes(String(chain.id)))
 			throw new Error('Chain not supported');
