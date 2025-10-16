@@ -28,11 +28,11 @@ Why?
 
 ### Todo
 
-- create onchain attestation
-- list attestations for vault
+- [x] create onchain attestation
+- [x] list attestations for vault
   - type / schema
   - metadata
-- attestation engine
+- [ ] attestation engine
 
 ---
 

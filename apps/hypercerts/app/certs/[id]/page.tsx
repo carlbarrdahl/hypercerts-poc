@@ -2,12 +2,12 @@ import { VaultDetails } from "@/components/vault/details";
 import { ContributorsList } from "@/components/vault/contributors";
 import { Address } from "viem";
 import { FundersList } from "@/components/vault/funders";
-import { Certs } from "@/components/vault/certs";
+import { Attestations } from "@/components/vault/attestations";
 
 export default async function CertPage({
   params,
 }: {
-  params: { id: Promise<Address> };
+  params: { id: Address };
 }) {
   const { id } = await params;
   return (
@@ -15,7 +15,7 @@ export default async function CertPage({
       <VaultDetails id={id} />
       <ContributorsList id={id} />
       <FundersList id={id} />
-      <Certs id={id} />
+      <Attestations id={id} />
     </div>
   );
 }

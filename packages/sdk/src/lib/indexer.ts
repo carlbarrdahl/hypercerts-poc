@@ -102,6 +102,37 @@ const fundersQuery = gql`
 		}
 	}
 `;
+
+const attestationsQuery = gql`
+	query Attestations(
+		$where: attestationFilter
+		$orderBy: String
+		$orderDirection: String
+		$before: String
+		$after: String
+		$limit: Int
+	) {
+		attestations(
+			where: $where
+			orderBy: $orderBy
+			orderDirection: $orderDirection
+			before: $before
+			after: $after
+			limit: $limit
+		) {
+			items {
+				id
+				time
+				refUID
+				recipient
+				attester
+				schema
+				decodedParsed
+				createdAt
+			}
+		}
+	}
+`;
 // GraphQL Types
 type Token = {
 	address: Address;
@@ -132,6 +163,16 @@ export type Funder = {
 	shares: string;
 	createdAt: string;
 	updatedAt: string;
+};
+export type Attestation = {
+	id: string;
+	refUID: string;
+	recipient: Address;
+	attester: Address;
+	schema: string;
+	decodedParsed: Record<string, unknown>;
+	createdAt: Date;
+	updatedAt: Date;
 };
 export type FunderFilter = {
 	AND?: FunderFilter[];
@@ -174,6 +215,26 @@ export type VaultFilter = {
 	percent_lte?: string;
 };
 
+export type AttestationFilter = {
+	AND?: AttestationFilter[];
+	OR?: AttestationFilter[];
+	id?: string;
+	id_in?: string[];
+	id_not_in?: string[];
+	recipient?: string;
+	recipient_in?: string[];
+	recipient_not_in?: string[];
+	attester?: string;
+	attester_in?: string[];
+	attester_not_in?: string[];
+	schema?: string;
+	schema_in?: string[];
+	schema_not_in?: string[];
+	decodedParsed?: Record<string, unknown>;
+	decodedParsed_in?: Record<string, unknown>[];
+	decodedParsed_not_in?: Record<string, unknown>[];
+};
+
 export type VaultOrderBy =
 	| 'id'
 	| 'parent'
@@ -196,6 +257,13 @@ export type FunderOrderBy =
 	| 'shares'
 	| 'createdAt'
 	| 'updatedAt';
+export type AttestationOrderBy =
+	| 'id'
+	| 'recipient'
+	| 'attester'
+	| 'schema'
+	| 'createdAt'
+	| 'updatedAt';
 
 export type Page<T> = {
 	items: T[];
@@ -210,7 +278,7 @@ export type Page<T> = {
 export type ContributorPage = Page<Contributor>;
 export type FunderPage = Page<Funder>;
 export type VaultPage = Page<Vault>;
-
+export type AttestationPage = Page<Attestation>;
 export type Meta = {
 	block: {
 		number: number;
@@ -223,7 +291,14 @@ export type Meta = {
 export type VaultVariables = {
 	id: string;
 };
-
+export type AttestationVariables = {
+	where?: AttestationFilter;
+	orderBy?: AttestationOrderBy;
+	orderDirection?: 'asc' | 'desc';
+	before?: string;
+	after?: string;
+	limit?: number;
+};
 export type VaultsVariables = {
 	where?: VaultFilter;
 	orderBy?: VaultOrderBy;
@@ -288,5 +363,28 @@ export function createIndexer(chain: keyof typeof config) {
 					.then((r) => (r.data?.funders ?? []) as FunderPage);
 			},
 		},
+		attestation: {
+			query: async (variables: AttestationVariables = {}) => {
+				return client
+					.query(attestationsQuery, variables)
+					.toPromise()
+					.then(
+						(r) => mapTimestamps(r.data?.attestations ?? []) as AttestationPage,
+					);
+			},
+		},
+	};
+}
+
+function mapTimestamps<
+	T extends { items: T[]; createdAt: number; updatedAt: number },
+>(data: T): T {
+	return {
+		...data,
+		items: data.items.map((item) => ({
+			...item,
+			createdAt: new Date(+item.createdAt),
+			updatedAt: new Date(+item.updatedAt),
+		})),
 	};
 }

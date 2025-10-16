@@ -81,9 +81,9 @@ export function ContributorsList({ id }: { id: Address }) {
                     <Amount amount={item.assets} />
                   </TableCell>
                   <TableCell>
-                    <TokenAmount
+                    <Amount
                       amount={shares * price}
-                      token={item.token?.address}
+                      symbol={item.token?.symbol}
                     />
                   </TableCell>
                 </TableRow>

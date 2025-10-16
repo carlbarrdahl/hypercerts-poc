@@ -11,6 +11,8 @@ import {
   TableHeader,
   TableRow,
   TableHead,
+  TableBody,
+  TableCell,
 } from "@workspace/ui/components/table";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -20,19 +22,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { useHypercertsCreateAttestation } from "@workspace/sdk";
-import { zeroAddress } from "viem";
+import {
+  useHypercertsCreateAttestation,
+  useHypercertsAttestations,
+} from "@workspace/sdk";
+import { Address, zeroAddress } from "viem";
+import { Amount, TokenAmount } from "../token-amount";
+import { EnsName } from "../ens";
+import { truncate } from "@/lib/truncate";
+import { timeAgo } from "@/lib/format";
 
 type Visibility = "private" | "organization" | "draft" | "published";
 
-export function Certs() {
-  const { mutate } = useHypercertsCreateAttestation();
-  const [visibility, setVisibility] = useState<Visibility>("private");
+export function Attestations({ id }: { id: Address }) {
+  const { mutate, isPending: isCreating } = useHypercertsCreateAttestation();
+  const [visibility, setVisibility] = useState<Visibility>("published");
+
+  const { data, error, isPending, isRefetching } = useHypercertsAttestations(
+    {
+      orderBy: "createdAt",
+      orderDirection: "desc",
+      where: {
+        recipient: id,
+      },
+    },
+    {
+      refetchInterval: 1000,
+    }
+  );
+
+  console.log("data", data, error);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Certs</CardTitle>
+        <CardTitle>Attestations</CardTitle>
 
         <div className="flex gap-4 items-center">
           <Select
@@ -51,9 +75,12 @@ export function Certs() {
           </Select>
 
           <Button
+            isLoading={isCreating}
+            loadingText="Creating Attestation..."
+            disabled={isCreating || !id}
             onClick={() =>
               mutate({
-                recipient: zeroAddress,
+                recipient: id,
                 visibility,
                 data: {
                   type: "milestone",
@@ -75,7 +102,7 @@ export function Certs() {
               })
             }
           >
-            Create Cert
+            Create Attestation
           </Button>
         </div>
       </CardHeader>
@@ -83,9 +110,30 @@ export function Certs() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Cert</TableHead>
+              <TableHead>ID</TableHead>
+              <TableHead>Attester</TableHead>
+              <TableHead>Created At</TableHead>
+              <TableHead>Decoded Parsed</TableHead>
             </TableRow>
           </TableHeader>
+          <TableBody>
+            {data?.items?.map((item) => {
+              return (
+                <TableRow>
+                  <TableCell>
+                    <pre>{truncate(item.id)}</pre>
+                  </TableCell>
+                  <TableCell>
+                    <pre>
+                      <EnsName address={item.attester} />
+                    </pre>
+                  </TableCell>
+                  <TableCell>{timeAgo(item.createdAt)}</TableCell>
+                  <TableCell>{JSON.stringify(item.decodedParsed)}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
         </Table>
       </CardContent>
     </Card>

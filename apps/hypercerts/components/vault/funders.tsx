@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@workspace/ui/components/table";
 import { Address } from "viem";
-import { TokenAmount } from "../token-amount";
+import { Amount, TokenAmount } from "../token-amount";
 import {
   Card,
   CardContent,
@@ -63,10 +63,7 @@ export function FundersList({ id }: { id: Address }) {
                 <TableRow>
                   <TableCell>{item.address}</TableCell>
                   <TableCell>
-                    <TokenAmount
-                      amount={item.assets}
-                      token={item.token?.address}
-                    />
+                    <Amount amount={item.assets} symbol={item.token?.symbol} />
                   </TableCell>
                   <TableCell>{inPercentage.toFixed(2)}%</TableCell>
                 </TableRow>

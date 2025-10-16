@@ -2,11 +2,13 @@
 
 pragma solidity 0.8.27;
 
-import { ISchemaResolver } from "./resolver/ISchemaResolver.sol";
+import {ISchemaResolver} from "./resolver/ISchemaResolver.sol";
 
-import { EMPTY_UID } from "./Common.sol";
-import { Semver } from "./Semver.sol";
-import { ISchemaRegistry, SchemaRecord } from "./ISchemaRegistry.sol";
+import {EMPTY_UID} from "./Common.sol";
+import {Semver} from "./Semver.sol";
+import {ISchemaRegistry, SchemaRecord} from "./ISchemaRegistry.sol";
+
+import "hardhat/console.sol";
 
 /// @title SchemaRegistry
 /// @notice The global schema registry.
@@ -20,7 +22,11 @@ contract SchemaRegistry is ISchemaRegistry, Semver {
     constructor() Semver(1, 3, 0) {}
 
     /// @inheritdoc ISchemaRegistry
-    function register(string calldata schema, ISchemaResolver resolver, bool revocable) external returns (bytes32) {
+    function register(
+        string calldata schema,
+        ISchemaResolver resolver,
+        bool revocable
+    ) external returns (bytes32) {
         SchemaRecord memory schemaRecord = SchemaRecord({
             uid: EMPTY_UID,
             schema: schema,
@@ -33,6 +39,8 @@ contract SchemaRegistry is ISchemaRegistry, Semver {
             revert AlreadyExists();
         }
 
+        console.logBytes32(uid);
+
         schemaRecord.uid = uid;
         _registry[uid] = schemaRecord;
 
@@ -42,14 +50,25 @@ contract SchemaRegistry is ISchemaRegistry, Semver {
     }
 
     /// @inheritdoc ISchemaRegistry
-    function getSchema(bytes32 uid) external view returns (SchemaRecord memory) {
+    function getSchema(
+        bytes32 uid
+    ) external view returns (SchemaRecord memory) {
         return _registry[uid];
     }
 
     /// @dev Calculates a UID for a given schema.
     /// @param schemaRecord The input schema.
     /// @return schema UID.
-    function _getUID(SchemaRecord memory schemaRecord) private pure returns (bytes32) {
-        return keccak256(abi.encodePacked(schemaRecord.schema, schemaRecord.resolver, schemaRecord.revocable));
+    function _getUID(
+        SchemaRecord memory schemaRecord
+    ) private pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    schemaRecord.schema,
+                    schemaRecord.resolver,
+                    schemaRecord.revocable
+                )
+            );
     }
 }

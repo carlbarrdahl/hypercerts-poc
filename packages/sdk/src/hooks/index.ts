@@ -12,7 +12,12 @@ import {
 	VaultPage,
 	VaultsVariables,
 } from '../lib/indexer';
-import { ContributorPage } from '../lib/indexer';
+import {
+	ContributorPage,
+	AttestationPage,
+	AttestationVariables,
+} from '../lib/indexer';
+import { Attestation } from '../lib/indexer';
 import { Transaction } from 'viem';
 import { AttestationInput } from '../lib/eas';
 
@@ -57,7 +62,7 @@ export function useListContributors(
 
 export function useListFunders(
 	variables: ContributorsVariables,
-	opts?: { enabled?: boolean; refetchInterval?: number },
+	opts?: Opts,
 ): UseQueryResult<ContributorPage | null | undefined, Error> {
 	const { sdk } = useHypercerts();
 	return useQuery({
@@ -111,15 +116,16 @@ export function useHypercertsCreateAttestation(): UseMutationResult<
 	});
 }
 
-// export function useHypercertsAttestations(
-// 	query: AttestationQuery,
-// 	opts?: { enabled?: boolean },
-// ): UseQueryResult<Attestation[] | undefined, Error> {
-// 	const { sdk } = useHypercerts();
-// 	return useQuery({
-// 		queryKey: ['attestations', query],
-// 		queryFn: async () =>
-// 			sdk?.cert.query(query).then(({ data }) => data.attestations),
-// 		...opts,
-// 	});
-// }
+export function useHypercertsAttestations(
+	query: AttestationVariables,
+	opts?: Opts,
+): UseQueryResult<AttestationPage | null | undefined, Error> {
+	const { sdk } = useHypercerts();
+
+	console.log('sdk', query);
+	return useQuery({
+		queryKey: ['attestations', query],
+		queryFn: async () => sdk?.indexer.attestation.query(query),
+		...opts,
+	});
+}

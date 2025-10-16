@@ -10,6 +10,7 @@ import {
 	zeroAddress,
 	keccak256,
 	encodeAbiParameters,
+	encodePacked,
 	zeroHash,
 } from 'viem';
 import {
@@ -19,6 +20,7 @@ import {
 	TransactionSigner,
 	SchemaRegistry,
 } from '@ethereum-attestation-service/eas-sdk';
+import { JsonRpcSigner } from 'ethers';
 import deployments from '../deployments.json';
 import { clientToSigner } from './viem-to-ethers';
 import { baseSepolia, hardhat } from 'viem/chains';
@@ -27,8 +29,8 @@ import { Logger } from './logger';
 import { waitForTransactionReceipt } from 'viem/actions';
 import { INDEXER_URL } from './graphql';
 import ky from 'ky';
-const schemaUID =
-	'0x7876d5406011830fa45bdfb6c7751d94a3c1477538f6a98f2668c2ab2bf898cd';
+// const schemaUID =
+// 	'0x7876d5406011830fa45bdfb6c7751d94a3c1477538f6a98f2668c2ab2bf898cd';
 
 export const AttestationInputSchema = z.object({
 	recipient: z.string(),
@@ -89,7 +91,7 @@ export async function createAttestation(
 		const isOnchain = visibility === 'published';
 		const schema = 'string type, string metadata, string visibility';
 		const schemaEncoder = new SchemaEncoder(schema);
-		const metadataURI = 'metadataCid';
+		const metadataURI = JSON.stringify(input.data.metadata);
 		const data = schemaEncoder.encodeData([
 			{ name: 'type', value: input.data.type, type: 'string' },
 			{ name: 'metadata', value: metadataURI, type: 'string' },
@@ -107,7 +109,8 @@ export async function createAttestation(
 		if (isOnchain) {
 			console.info('creating onchain attestation');
 
-			await registerSchema(schema, signer);
+			const schemaUID = await registerSchema(schema, signer);
+			console.log('attest to schemaUID', schemaUID);
 
 			return eas
 				.attest({
@@ -116,6 +119,7 @@ export async function createAttestation(
 				})
 				.then((tx) => tx.wait());
 		} else {
+			throw new Error('Offchain attestations are not implemented yet');
 			/*
 	
 	- private attestations
@@ -179,7 +183,7 @@ export async function createAttestation(
 	}
 }
 
-async function registerSchema(schema: string, signer: Signer) {
+async function registerSchema(schema: string, signer: JsonRpcSigner) {
 	const resolver = zeroAddress; // No resolver
 	const revocable = true; // Allow revocations
 
@@ -188,74 +192,49 @@ async function registerSchema(schema: string, signer: Signer) {
 	console.log('- Resolver:', resolver);
 	console.log('- Revocable:', revocable);
 
-	// Check if schema already exists
 	// Calculate expected schema UID
 	const schemaUID = keccak256(
-		encodeAbiParameters(
-			[
-				{ type: 'string', name: 'schema' },
-				{ type: 'address', name: 'resolver' },
-				{ type: 'bool', name: 'revocable' },
-			],
-			[schema, resolver, revocable],
-		),
+		encodePacked(['string', 'address', 'bool'], [schema, resolver, revocable]),
 	);
 
 	console.log('\nExpected Schema UID:', schemaUID);
 
-	// const schemaRegistryContractAddress = '0xYourSchemaRegistryContractAddress';
 	const schemaRegistry = new SchemaRegistry(config.registry[hardhat.id]);
-	// const schemaRegistry = new SchemaRegistry(schemaRegistryContractAddress);
-
 	schemaRegistry.connect(signer);
 
-	const transaction = await schemaRegistry.register({
-		schema,
-		resolverAddress: zeroAddress,
-		revocable,
-	});
+	// Check if schema already exists FIRST
+	const existingSchema = await schemaRegistry
+		.getSchema({ uid: schemaUID })
+		.catch((error) => {
+			console.warn(error);
+			return null;
+		});
 
-	// Optional: Wait for transaction to be validated
-	await transaction.wait();
-	console.log('\nExpected Schema UID:', schemaUID);
-
-	const existingSchema = await schemaRegistry.getSchema({ uid: schemaUID });
-	if (existingSchema.uid !== zeroHash) {
+	if (existingSchema?.uid && existingSchema.uid !== zeroHash) {
 		console.log('\n✅ Schema already registered!');
 		console.log('Schema UID:', existingSchema.uid);
-		return;
+		return schemaUID;
 	}
 
-	// Register the schema
+	// Register the schema only if it doesn't exist
 	console.log('\n📝 Registering schema...');
-	const tx = await schemaRegistry.register(schema, resolver, revocable);
-	console.log('Transaction hash:', tx.hash);
+	const tx = await schemaRegistry.register({
+		schema,
+		resolverAddress: resolver,
+		revocable,
+	});
+	console.log('Transaction hash:', tx);
 
-	const receipt = await tx.wait();
+	await tx.wait();
 	console.log('✅ Schema registered successfully!');
 
-	// Get the registered schema UID from the event
-	const registeredEvent = receipt?.log.find((log: any) => {
-		try {
-			const parsed = SchemaRegistry.interface.parseLog(log);
-			return parsed?.name === 'Registered';
-		} catch {
-			return false;
-		}
-	});
-
-	if (registeredEvent) {
-		const parsed = SchemaRegistry.interface.parseLog(registeredEvent);
-		console.log('\n📋 Registered Schema Details:');
-		console.log('Schema UID:', parsed?.args.uid);
-		console.log('Registerer:', parsed?.args.registerer);
-	}
-
 	// Verify registration
-	const registeredSchema = await SchemaRegistry.getSchema(schemaUID);
+	const registeredSchema = await schemaRegistry.getSchema({ uid: schemaUID });
 	console.log('\n✅ Verification:');
 	console.log('Schema UID:', registeredSchema.uid);
 	console.log('Schema:', registeredSchema.schema);
 	console.log('Resolver:', registeredSchema.resolver);
 	console.log('Revocable:', registeredSchema.revocable);
+
+	return schemaUID;
 }
