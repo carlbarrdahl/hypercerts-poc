@@ -56,7 +56,7 @@ export function FundersList({ id }: { id: Address }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.items.map((item) => {
+            {data?.items?.map((item) => {
               const inPercentage =
                 (Number(item.assets ?? 0) / Number(balance?.assets)) * 100;
               return (

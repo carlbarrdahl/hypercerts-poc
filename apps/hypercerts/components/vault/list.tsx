@@ -7,6 +7,7 @@ import { Grid } from "../grid";
 export function VaultsList() {
   const { data, ...rest } = useListHypercerts({ orderBy: "id" });
 
+  console.log("data", data, rest);
   return (
     <div>
       <h3>Vaults List</h3>

@@ -31,19 +31,16 @@ export function ContributorsList({ id }: { id: Address }) {
       },
     },
     {
-      // refetchInterval: 1000,
+      refetchInterval: 1000,
     }
   );
-
-  console.log(data, { isRefetching });
 
   const { data: balance } = useQuery({
     queryKey: ["vault", id, "balance"],
     queryFn: () => sdk?.vault.balance(id),
     enabled: Boolean(id),
   });
-  console.log(data?.items);
-  console.log("balance", balance);
+
   return (
     <Card>
       <CardHeader>
@@ -60,13 +57,13 @@ export function ContributorsList({ id }: { id: Address }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.items.map((item) => {
+            {data?.items?.map((item) => {
               const shares = BigInt(item.shares) ?? 0n;
               const inPercentage =
                 (Number(shares) / Number(balance?.shares)) * 100;
 
               const price = balance?.price ?? 1n;
-              console.log({ price, shares });
+              // console.log({ price, shares });
               return (
                 <TableRow>
                   <TableCell>{item.address}</TableCell>

@@ -13,6 +13,9 @@ import {
 	WalletClient,
 	Chain,
 	Hex,
+	Client,
+	Transport,
+	Account,
 } from 'viem';
 import {
 	baseSepolia,
@@ -37,6 +40,11 @@ import {
 	toSmartContractAccount,
 	WalletClientSigner,
 } from '@aa-sdk/core';
+import { AttestationInput, createAttestation } from './lib/eas';
+import { AttestationQuery, queryAttestations } from './lib/graphql';
+import { TransactionSigner } from '@ethereum-attestation-service/eas-sdk';
+import { BrowserProvider } from 'ethers';
+import { JsonRpcSigner } from 'ethers';
 
 export { HypercertsProvider, useHypercerts } from './components/provider';
 export * from './hooks';
@@ -100,8 +108,9 @@ export class HypercertsSDK {
 		address: Address,
 	) => GetContractReturnType<typeof HyperVault.abi, WalletClient>;
 	indexer: ReturnType<typeof createIndexer>;
-	account: AccountMethods;
+	// account: AccountMethods;
 	vault: VaultMethods;
+	cert: CertMethods;
 	test?: { token: Address };
 	constructor(wallet?: WalletClient) {
 		const chain = wallet?.chain;
@@ -137,35 +146,12 @@ export class HypercertsSDK {
 			token: TestToken.address as Address,
 		};
 
-		this.account = {
-			get: async () => {
-				return createMultiOwnerLightAccountAlchemyClient({
-					transport: alchemy({ apiKey: ALCHEMY_API_KEY }),
-					chain: this.#client.chain!,
-					signer: new WalletClientSigner(this.#client, 'id'),
-				});
+		this.cert = {
+			create: async (data: AttestationInput) => {
+				return createAttestation(data, this.#client);
 			},
-			updateOwners: async ({ ownersToAdd, ownersToRemove }) => {
-				const hyperAccount = await this.account.get();
-				const hash = await hyperAccount.updateOwners({
-					account: hyperAccount.account,
-					ownersToAdd,
-					ownersToRemove,
-				});
-
-				return hyperAccount.waitForUserOperationTransaction({ hash });
-			},
-		};
-		this.organization = {
-			create: async () => {
-				const hyperAccount = await this.account.get();
-				return createMultisigAccountAlchemyClient({
-					transport: alchemy({ apiKey: ALCHEMY_API_KEY }),
-					chain: this.#client.chain!,
-					signer: new WalletClientSigner(this.#client, 'org'),
-					owners: [hyperAccount.account.address],
-					threshold: 1n,
-				});
+			query: async (query: AttestationQuery) => {
+				return queryAttestations(query);
 			},
 		};
 		this.vault = {

@@ -1,8 +1,8 @@
 {
   "_format": "hh3-sol-build-info-1",
-  "id": "solc-0_8_28-0136f5648c0d175bec3dfc586dd3ab37dd6556fc",
-  "solcVersion": "0.8.28",
-  "solcLongVersion": "0.8.28+commit.7893614a",
+  "id": "solc-0_8_27-1429404c1960bf3398ba0110c77f405b8738432c",
+  "solcVersion": "0.8.27",
+  "solcLongVersion": "0.8.27+commit.40a35a09",
   "userSourceNameMap": {
     "contracts/TestToken.sol": "project/contracts/TestToken.sol"
   },
@@ -49,7 +49,7 @@
         "content": "// SPDX-License-Identifier: MIT\n// OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)\n\npragma solidity ^0.8.20;\n\n/**\n * @dev Provides information about the current execution context, including the\n * sender of the transaction and its data. While these are generally available\n * via msg.sender and msg.data, they should not be accessed in such a direct\n * manner, since when dealing with meta-transactions the account sending and\n * paying for execution may not be the actual sender (as far as an application\n * is concerned).\n *\n * This contract is only required for intermediate, library-like contracts.\n */\nabstract contract Context {\n    function _msgSender() internal view virtual returns (address) {\n        return msg.sender;\n    }\n\n    function _msgData() internal view virtual returns (bytes calldata) {\n        return msg.data;\n    }\n\n    function _contextSuffixLength() internal view virtual returns (uint256) {\n        return 0;\n    }\n}\n"
       },
       "project/contracts/TestToken.sol": {
-        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.23;\n\nimport {ERC20} from \"@openzeppelin/contracts/token/ERC20/ERC20.sol\";\n\ncontract TestToken is ERC20 {\n    constructor() ERC20(\"USDC\", \"USDC\") {\n        _mint(msg.sender, 1_000_000 ether);\n    }\n\n    function mint(address to, uint256 amount) external {\n        _mint(to, amount);\n    }\n}\n\n\n"
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.27;\n\nimport {ERC20} from \"@openzeppelin/contracts/token/ERC20/ERC20.sol\";\n\ncontract TestToken is ERC20 {\n    constructor() ERC20(\"USDC\", \"USDC\") {\n        _mint(msg.sender, 1_000_000 ether);\n    }\n\n    function mint(address to, uint256 amount) external {\n        _mint(to, amount);\n    }\n}\n"
       }
     }
   }

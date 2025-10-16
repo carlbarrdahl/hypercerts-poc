@@ -2,6 +2,7 @@ import { VaultDetails } from "@/components/vault/details";
 import { ContributorsList } from "@/components/vault/contributors";
 import { Address } from "viem";
 import { FundersList } from "@/components/vault/funders";
+import { Certs } from "@/components/vault/certs";
 
 export default async function CertPage({
   params,
@@ -14,6 +15,7 @@ export default async function CertPage({
       <VaultDetails id={id} />
       <ContributorsList id={id} />
       <FundersList id={id} />
+      <Certs id={id} />
     </div>
   );
 }

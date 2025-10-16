@@ -13,7 +13,7 @@ export function Header() {
           <Button variant="link">Account</Button>
         </Link>
       </div>
-      {/* <LoginButton /> */}
+      <LoginButton />
     </header>
   );
 }

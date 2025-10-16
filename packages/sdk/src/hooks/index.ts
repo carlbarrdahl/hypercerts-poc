@@ -1,5 +1,10 @@
 import { useHypercerts } from '../components/provider';
-import { useMutation, useQuery, UseQueryResult } from '@tanstack/react-query';
+import {
+	useMutation,
+	UseMutationResult,
+	useQuery,
+	UseQueryResult,
+} from '@tanstack/react-query';
 // import { OrganizationAccount } from '..';
 import { HyperVaultConfig } from '..';
 import {
@@ -8,6 +13,8 @@ import {
 	VaultsVariables,
 } from '../lib/indexer';
 import { ContributorPage } from '../lib/indexer';
+import { Transaction } from 'viem';
+import { AttestationInput } from '../lib/eas';
 
 type Opts = {
 	enabled?: boolean;
@@ -26,6 +33,8 @@ export function useListHypercerts(
 	opts?: Opts,
 ): UseQueryResult<VaultPage | null | undefined, Error> {
 	const { sdk } = useHypercerts();
+
+	console.log('sdk', sdk);
 	return useQuery({
 		queryKey: ['vaults', { variables }],
 		queryFn: () => sdk?.indexer.vault.query(variables),
@@ -91,15 +100,16 @@ export function useListFunders(
 // 	});
 // }
 
-// export function useHypercertsCreateAttestation(
-// 	signer: TransactionSigner,
-// ): UseMutationResult<Transaction<string> | undefined, Error, AttestationInput> {
-// 	const { sdk } = useHypercerts();
-// 	return useMutation({
-// 		mutationFn: async (data: AttestationInput) =>
-// 			sdk?.cert.create(data, signer),
-// 	});
-// }
+export function useHypercertsCreateAttestation(): UseMutationResult<
+	Transaction<string> | undefined,
+	Error,
+	AttestationInput
+> {
+	const { sdk } = useHypercerts();
+	return useMutation({
+		mutationFn: async (data: AttestationInput) => sdk?.cert.create(data),
+	});
+}
 
 // export function useHypercertsAttestations(
 // 	query: AttestationQuery,

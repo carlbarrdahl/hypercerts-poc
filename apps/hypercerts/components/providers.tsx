@@ -1,27 +1,16 @@
 "use client";
 
 import * as React from "react";
+import { PropsWithChildren } from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { HypercertsProvider } from "@workspace/sdk";
 
-import {
-  AlchemyAccountProvider,
-  AlchemyAccountsProviderProps,
-  useSmartAccountClient,
-} from "@account-kit/react";
-import { baseSepolia } from "@account-kit/infra";
 import { config } from "@/config";
-import { useWalletClient } from "wagmi";
+import { useWalletClient, WagmiProvider } from "wagmi";
 
-export function Providers({
-  children,
-  initialState,
-}: {
-  children: React.ReactNode;
-  initialState?: AlchemyAccountsProviderProps["initialState"];
-}) {
+export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(
     () =>
       new QueryClient({
@@ -35,12 +24,7 @@ export function Providers({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AlchemyAccountProvider
-        config={config}
-        queryClient={queryClient}
-        initialState={initialState}
-      >
-        {/* <Hypercerts> */}
+      <WagmiProvider config={config}>
         <NextThemesProvider
           attribute="class"
           defaultTheme="system"
@@ -48,17 +32,17 @@ export function Providers({
           disableTransitionOnChange
           enableColorScheme
         >
-          {children}
-          <Toaster />
+          <Hypercerts>
+            {children}
+            <Toaster />
+          </Hypercerts>
         </NextThemesProvider>
-        {/* </Hypercerts> */}
-      </AlchemyAccountProvider>
+      </WagmiProvider>
     </QueryClientProvider>
   );
 }
 
-function Hypercerts({ children }: { children: React.ReactNode }) {
-  // const { data: client } = useSmartAccountClient();
+function Hypercerts({ children }: PropsWithChildren) {
   const { data: client } = useWalletClient();
   if (!client) return <div>Loading...</div>;
   return <HypercertsProvider client={client}>{children}</HypercertsProvider>;

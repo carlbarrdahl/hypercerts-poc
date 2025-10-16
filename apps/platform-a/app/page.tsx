@@ -77,7 +77,7 @@ function Attestations() {
   const { sdk } = useHypercerts();
   const { address } = useAccount();
   const { data: account } = useHypercertsAccount(address!);
-  console.log("account", account)
+  console.log("account", account);
   const { data, isPending } = useHypercertsAttestations(
     {
       where: {
@@ -138,7 +138,12 @@ function CreateAttestation() {
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-      <Button disabled={isPending || !text} isLoading={isPending} type="submit" loadingText="Creating...">
+      <Button
+        disabled={isPending || !text}
+        isLoading={isPending}
+        type="submit"
+        loadingText="Creating..."
+      >
         Create Attestation
       </Button>
     </form>

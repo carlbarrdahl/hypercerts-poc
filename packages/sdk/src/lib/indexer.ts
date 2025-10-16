@@ -265,6 +265,7 @@ export function createIndexer(chain: keyof typeof config) {
 	return {
 		vault: {
 			query: async (variables: VaultsVariables = {}) => {
+				console.log('variables', variables);
 				return client
 					.query(vaultsQuery, variables)
 					.toPromise()
