@@ -8,11 +8,37 @@ import {
   useSignerStatus,
   useUser,
 } from "@account-kit/react";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useAccount, useChainId, useConnect, useDisconnect } from "wagmi";
 import { burner } from "burner-connector";
 import { FaucetButton } from "./dev/faucet-button";
+import { Address } from "viem";
+import { usePrivy } from "@privy-io/react-auth";
+import { EnsName } from "./ens";
 
 export function LoginButton() {
+  const { ready, authenticated, logout, login, user } = usePrivy();
+
+  if (!ready) return <Button variant="outline" disabled isLoading />;
+  if (authenticated) {
+    return (
+      <div className="flex items-center gap-2">
+        <FaucetButton />
+        <pre className="text-xs">
+          <EnsName address={user?.wallet?.address as Address} />
+        </pre>
+        <Button variant="default" onClick={() => logout()}>
+          Disconnect
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <Button variant="default" onClick={() => login()}>
+      Connect
+    </Button>
+  );
+}
+export function LoginButtonLocal() {
   const account = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();

@@ -114,7 +114,7 @@ export class HypercertsSDK {
 	test?: { token: Address };
 	constructor(wallet?: WalletClient) {
 		const chain = wallet?.chain;
-		console.log(wallet);
+		console.log('wallet', wallet);
 		if (!wallet || !chain?.id) throw new Error('Chain ID not found');
 		if (!Object.keys(config).includes(String(chain.id)))
 			throw new Error('Chain not supported');
@@ -274,6 +274,7 @@ export class HypercertsSDK {
 		eventName: string;
 	}): Promise<T> {
 		try {
+			console.log('contract', this.#client);
 			const hash = await (contract.write as any)[functionName]({
 				functionName,
 				args,

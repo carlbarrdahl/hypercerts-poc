@@ -39,6 +39,7 @@ Why?
 - [ ] store ipfs
   - [ ] mock
   - [ ] storacha
+- [x] privy login
 
 ---
 

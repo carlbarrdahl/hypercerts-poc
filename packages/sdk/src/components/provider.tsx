@@ -22,6 +22,7 @@ export function HypercertsProvider({
 	client,
 }: PropsWithChildren<{ client?: WalletClient }>): React.ReactNode {
 	const [sdk] = useState<HypercertsSDK | null>(new HypercertsSDK(client));
+	console.log('Initializing HypercertsProvider', sdk);
 	return (
 		<HypercertsContext.Provider value={{ sdk }}>
 			{children}

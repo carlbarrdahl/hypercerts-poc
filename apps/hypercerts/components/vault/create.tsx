@@ -26,6 +26,13 @@ import { Input } from "@workspace/ui/components/input";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAccount } from "wagmi";
+import {
+  Select,
+  SelectItem,
+  SelectContent,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
 
 const formSchema = z.object({
   parent: z.string().optional(),
@@ -48,6 +55,16 @@ export function CreateVault() {
   const queryClient = useQueryClient();
   const { address } = useAccount();
   const router = useRouter();
+  const tokens = [
+    {
+      address: sdk?.test?.token,
+      name: "USDC",
+    },
+    {
+      address: zeroAddress,
+      name: "ETH",
+    },
+  ];
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -125,7 +142,18 @@ export function CreateVault() {
                 <FormItem>
                   <FormLabel>Token Address</FormLabel>
                   <FormControl>
-                    <Input placeholder="0x..." {...field} />
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a token" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tokens.map((token) => (
+                          <SelectItem key={token.address} value={token.address}>
+                            {token.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormDescription>
                     The ERC20 token address to be held in the Hypercert.
