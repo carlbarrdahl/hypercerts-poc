@@ -26,6 +26,8 @@ const vaultsQuery = gql`
 				percent
 				token
 				metadata
+				createdAt
+				updatedAt
 			}
 			totalCount
 			pageInfo {
@@ -99,6 +101,13 @@ const fundersQuery = gql`
 				createdAt
 				updatedAt
 			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+				startCursor
+				endCursor
+			}
 		}
 	}
 `;
@@ -129,6 +138,15 @@ const attestationsQuery = gql`
 				schema
 				decodedParsed
 				createdAt
+				updatedAt
+				isOffchain
+			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+				startCursor
+				endCursor
 			}
 		}
 	}
@@ -344,7 +362,7 @@ export function createIndexer(chain: keyof typeof config) {
 				return client
 					.query(vaultsQuery, variables)
 					.toPromise()
-					.then((r) => (r.data?.vaults ?? []) as VaultPage);
+					.then((r) => mapTimestamps(r.data?.vaults ?? []) as VaultPage);
 			},
 		},
 		contributor: {
@@ -352,7 +370,9 @@ export function createIndexer(chain: keyof typeof config) {
 				return client
 					.query(contributorsQuery, variables)
 					.toPromise()
-					.then((r) => (r.data?.contributors ?? []) as ContributorPage);
+					.then(
+						(r) => mapTimestamps(r.data?.contributors ?? []) as ContributorPage,
+					);
 			},
 		},
 		funder: {
@@ -360,7 +380,7 @@ export function createIndexer(chain: keyof typeof config) {
 				return client
 					.query(fundersQuery, variables)
 					.toPromise()
-					.then((r) => (r.data?.funders ?? []) as FunderPage);
+					.then((r) => mapTimestamps(r.data?.funders ?? []) as FunderPage);
 			},
 		},
 		attestation: {
@@ -383,8 +403,8 @@ function mapTimestamps<
 		...data,
 		items: data.items.map((item) => ({
 			...item,
-			createdAt: new Date(+item.createdAt),
-			updatedAt: new Date(+item.updatedAt),
+			createdAt: item.createdAt ? new Date(+item.createdAt) : undefined,
+			updatedAt: item.updatedAt ? new Date(+item.updatedAt) : undefined,
 		})),
 	};
 }

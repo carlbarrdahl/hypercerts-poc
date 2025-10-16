@@ -51,8 +51,6 @@ export function Attestations({ id }: { id: Address }) {
     }
   );
 
-  console.log("data", data, error);
-
   return (
     <Card>
       <CardHeader>

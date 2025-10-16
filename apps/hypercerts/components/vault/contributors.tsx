@@ -57,7 +57,7 @@ export function ContributorsList({ id }: { id: Address }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.items?.map((item) => {
+            {data?.items?.map((item, i) => {
               const shares = BigInt(item.shares) ?? 0n;
               const inPercentage =
                 (Number(shares) / Number(balance?.shares)) * 100;
@@ -65,7 +65,7 @@ export function ContributorsList({ id }: { id: Address }) {
               const price = balance?.price ?? 1n;
               // console.log({ price, shares });
               return (
-                <TableRow>
+                <TableRow key={i}>
                   <TableCell>{item.address}</TableCell>
                   <TableCell>
                     <Amount amount={item.shares} />

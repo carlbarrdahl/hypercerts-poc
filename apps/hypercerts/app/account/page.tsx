@@ -7,17 +7,17 @@ import { useEffect } from "react";
 import { useAccount } from "wagmi";
 export default function AccountPage() {
   const { sdk } = useHypercerts();
-  console.log("sdk", sdk);
+  // console.log("sdk", sdk);
 
   const { address } = useAccount();
   const { data: account } = useQuery({
     queryKey: ["account"],
     queryFn: async () => {
       const account = await sdk?.account.get();
-      console.log(
-        "owners",
-        await account?.account.getOwnerAddresses().catch(console.error)
-      );
+      // console.log(
+      //   "owners",
+      //   await account?.account.getOwnerAddresses().catch(console.error)
+      // );
 
       return account;
       return {
@@ -31,9 +31,9 @@ export default function AccountPage() {
     queryFn: () => sdk?.organization.create(),
   });
 
-  console.log("address", address);
-  console.log("account", account);
-  console.log("org", org);
+  // console.log("address", address);
+  // console.log("account", account);
+  // console.log("org", org);
   return (
     <div>
       <h1>Account</h1>

@@ -64,8 +64,6 @@ export function VaultDetails({ id }: { id: Address }) {
     onSuccess,
   });
 
-  console.log("creator", creator);
-
   const amountInWei = parseUnits(String(amount ?? 0), vault?.token?.decimals);
   return (
     <Card>

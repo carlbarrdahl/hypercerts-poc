@@ -33,6 +33,12 @@ Why?
   - type / schema
   - metadata
 - [ ] attestation engine
+- [ ] merge contributor and funder - use deposit and funded events
+- [ ] mint tokens to contributors (enter list of email and amounts)
+- [ ] preset bio vaults with KML / geojson
+- [ ] store ipfs
+  - [ ] mock
+  - [ ] storacha
 
 ---
 
