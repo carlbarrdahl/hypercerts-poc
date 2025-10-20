@@ -69,7 +69,7 @@ export function CreateVault() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       parent: zeroAddress,
-      asset: sdk?.test?.token || zeroAddress,
+      asset: sdk?.test?.token,
       percent: "100",
       metadata: "",
       shares: "0", //parseUnits("100", 18).toString(),

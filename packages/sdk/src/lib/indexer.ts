@@ -159,9 +159,10 @@ type Token = {
 };
 export type Vault = {
 	id: string;
-	parent?: string;
+	owner: Address;
+	parent?: Address;
 	percent: string;
-	metadata: string;
+	metadata: Record<string, any>;
 	token: Token;
 	createdAt: string;
 	updatedAt: string;

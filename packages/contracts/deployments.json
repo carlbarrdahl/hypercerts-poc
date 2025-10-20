@@ -471,7 +471,7 @@
             },
             {
               "internalType": "string",
-              "name": "metadata",
+              "name": "metadataURI",
               "type": "string"
             }
           ],
@@ -608,7 +608,7 @@
                 },
                 {
                   "internalType": "string",
-                  "name": "metadata",
+                  "name": "metadataURI",
                   "type": "string"
                 }
               ],
@@ -1030,7 +1030,7 @@
                 },
                 {
                   "internalType": "string",
-                  "name": "metadata",
+                  "name": "metadataURI",
                   "type": "string"
                 }
               ],
@@ -1074,7 +1074,7 @@
                 },
                 {
                   "internalType": "string",
-                  "name": "metadata",
+                  "name": "metadataURI",
                   "type": "string"
                 }
               ],

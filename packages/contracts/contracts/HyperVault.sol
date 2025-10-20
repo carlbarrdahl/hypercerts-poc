@@ -15,7 +15,7 @@ struct Config {
     address owner;
     uint256 percent;
     uint256 shares;
-    string metadata;
+    string metadataURI;
 }
 
 contract HyperVaultFactory {

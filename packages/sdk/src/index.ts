@@ -62,7 +62,8 @@ export type HyperVaultConfig = {
 	asset: Address;
 	percent: bigint;
 	shares: bigint;
-	metadata: string;
+	metadata: Record<string, any>;
+	// metadata: string;
 };
 
 export type AccountMethods = {
@@ -156,10 +157,29 @@ export class HypercertsSDK {
 		};
 		this.vault = {
 			create: async (config): Promise<Address> => {
+				// Upload metadata to IPFS API
+				const metadataBlob = new Blob([JSON.stringify(config.metadata)], {
+					type: 'application/json',
+				});
+				const formData = new FormData();
+				formData.append('file', metadataBlob, 'metadata.json');
+
+				const response = await fetch('http://localhost:3000/api/ipfs', {
+					method: 'POST',
+					body: formData,
+				});
+
+				if (!response.ok) {
+					throw new Error(`Failed to upload metadata: ${response.statusText}`);
+				}
+
+				const { cid } = await response.json();
+				const metadataURI = cid;
+
 				return this.#simulateWriteAndFindEvent({
 					contract: this.#factory,
 					functionName: 'create',
-					args: [config],
+					args: [{ ...config, metadataURI }],
 					abi: this.#abi.HyperVaultFactory,
 					eventName: 'Created',
 				}).then((r) => r.id);

@@ -37,7 +37,7 @@ export function ContributorsList({ id }: { id: Address }) {
 
   const { data: balance } = useQuery({
     queryKey: ["vault", id, "balance"],
-    queryFn: () => sdk?.vault.balance(id),
+    queryFn: () => sdk?.vault.balance(id) ?? null,
     enabled: Boolean(id),
   });
 

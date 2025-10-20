@@ -54,7 +54,7 @@ export function useListContributors(
 	const { sdk } = useHypercerts();
 	return useQuery({
 		queryKey: ['contributors', { variables }],
-		queryFn: () => sdk?.indexer.contributor.query(variables),
+		queryFn: () => sdk?.indexer.contributor.query(variables) ?? null,
 
 		...opts,
 	});
@@ -67,7 +67,7 @@ export function useListFunders(
 	const { sdk } = useHypercerts();
 	return useQuery({
 		queryKey: ['funders', { variables }],
-		queryFn: () => sdk?.indexer.funder.query(variables),
+		queryFn: () => sdk?.indexer.funder.query(variables) ?? null,
 		...opts,
 	});
 }
