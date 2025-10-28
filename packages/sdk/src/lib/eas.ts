@@ -1,15 +1,7 @@
 import {
-	Account,
-	Transport,
-	Chain,
-	Address,
-	Client,
 	WalletClient,
-	parseEventLogs,
-	Hex,
 	zeroAddress,
 	keccak256,
-	encodeAbiParameters,
 	encodePacked,
 	zeroHash,
 } from 'viem';
@@ -17,7 +9,6 @@ import {
 	EAS,
 	SchemaEncoder,
 	NO_EXPIRATION,
-	TransactionSigner,
 	SchemaRegistry,
 } from '@ethereum-attestation-service/eas-sdk';
 import { JsonRpcSigner } from 'ethers';
@@ -25,12 +16,8 @@ import deployments from '../deployments.json';
 import { clientToSigner } from './viem-to-ethers';
 import { baseSepolia, hardhat } from 'viem/chains';
 import { z } from 'zod';
-import { Logger } from './logger';
-import { waitForTransactionReceipt } from 'viem/actions';
 import { INDEXER_URL } from './graphql';
 import ky from 'ky';
-// const schemaUID =
-// 	'0x7876d5406011830fa45bdfb6c7751d94a3c1477538f6a98f2668c2ab2bf898cd';
 
 export const AttestationInputSchema = z.object({
 	recipient: z.string(),
@@ -106,10 +93,10 @@ export async function createAttestation(
 			revocable: true,
 			data,
 		};
+		const schemaUID = await registerSchema(schema, signer);
 		if (isOnchain) {
 			console.info('creating onchain attestation');
 
-			const schemaUID = await registerSchema(schema, signer);
 			console.log('attest to schemaUID', schemaUID);
 
 			return eas

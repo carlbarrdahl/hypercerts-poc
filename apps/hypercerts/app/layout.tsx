@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, IBM_Plex_Mono } from "next/font/google";
 
 import "@workspace/ui/globals.css";
 import { Providers } from "@/components/providers";
@@ -10,9 +10,12 @@ const fontSans = Geist({
   variable: "--font-sans",
 });
 
-const fontMono = Geist_Mono({
+const fontMono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+  weight: ["400", "500", "600"],
+  adjustFontFallback: false,
+  preload: false,
 });
 
 export default async function RootLayout({
@@ -22,9 +25,7 @@ export default async function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
-      >
+      <body className={` font-sans antialiased `}>
         <Providers>
           <main className="max-w-screen-lg mx-auto min-h-svh">
             <Header />

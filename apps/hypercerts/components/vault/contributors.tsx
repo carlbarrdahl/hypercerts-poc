@@ -35,6 +35,12 @@ export function ContributorsList({ id }: { id: Address }) {
     }
   );
 
+  const { data: vaultData } = useQuery({
+    queryKey: ["vault", id],
+    queryFn: () => sdk?.vault.query({ where: { id }, limit: 1 }) ?? null,
+    select: (data) => data?.items[0],
+  });
+
   const { data: balance } = useQuery({
     queryKey: ["vault", id, "balance"],
     queryFn: () => sdk?.vault.balance(id) ?? null,
@@ -44,53 +50,60 @@ export function ContributorsList({ id }: { id: Address }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle> Contributors List</CardTitle>
+        <CardTitle>Contributors</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Address</TableHead>
-              <TableHead>Shares</TableHead>
-              <TableHead>Assets</TableHead>
-              <TableHead>Current value</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.items?.map((item, i) => {
-              const shares = BigInt(item.shares) ?? 0n;
-              const inPercentage =
-                (Number(shares) / Number(balance?.shares)) * 100;
+        {!data?.items?.length ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No contributors yet
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Address</TableHead>
+                <TableHead className="text-right">Shares</TableHead>
+                <TableHead className="text-right">Assets</TableHead>
+                <TableHead className="text-right">Value</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data?.items?.map((item, i) => {
+                const shares = BigInt(item.shares) ?? 0n;
+                const inPercentage =
+                  (Number(shares) / Number(balance?.shares)) * 100;
 
-              const price = balance?.price ?? 1n;
-              // console.log({ price, shares });
-              return (
-                <TableRow key={i}>
-                  <TableCell>{item.address}</TableCell>
-                  <TableCell>
-                    <Amount amount={item.shares} />
-                    <span className="text-xs text-muted-foreground">
-                      (
-                      {balance?.shares! > 0
-                        ? `${inPercentage.toFixed(2)}%`
-                        : "--"}
-                      )
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Amount amount={item.assets} />
-                  </TableCell>
-                  <TableCell>
-                    <Amount
-                      amount={shares * price}
-                      symbol={item.token?.symbol}
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                const price = balance?.price ?? 1n;
+                return (
+                  <TableRow key={i}>
+                    <TableCell className="font-mono text-sm">
+                      {item.address}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div>
+                        <Amount amount={item.shares} />
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {balance?.shares! > 0
+                          ? `${inPercentage.toFixed(2)}%`
+                          : "--"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Amount amount={item.assets} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Amount
+                        amount={shares * price}
+                        symbol={vaultData?.token?.symbol}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

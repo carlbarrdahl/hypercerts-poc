@@ -104,6 +104,8 @@ export function CreateVault() {
     create.mutate(config);
   };
 
+  console.log("tokens", tokens);
+
   return (
     <Card className="max-w-md space-y-6">
       <CardHeader>
@@ -148,7 +150,10 @@ export function CreateVault() {
                       </SelectTrigger>
                       <SelectContent>
                         {tokens.map((token) => (
-                          <SelectItem key={token.address} value={token.address}>
+                          <SelectItem
+                            key={token.address}
+                            value={token.address!}
+                          >
                             {token.name}
                           </SelectItem>
                         ))}

@@ -40,37 +40,49 @@ export function FundersList({ id }: { id: Address }) {
     queryFn: () => sdk?.vault.balance(id),
     enabled: Boolean(id),
   });
-  console.log(data?.items);
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Funders List</CardTitle>
+        <CardTitle>Funders</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Address</TableHead>
-              <TableHead>Funding</TableHead>
-              <TableHead>% of total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.items?.map((item) => {
-              const inPercentage =
-                (Number(item.assets ?? 0) / Number(balance?.assets)) * 100;
-              return (
-                <TableRow>
-                  <TableCell>{item.address}</TableCell>
-                  <TableCell>
-                    <Amount amount={item.assets} symbol={item.token?.symbol} />
-                  </TableCell>
-                  <TableCell>{inPercentage.toFixed(2)}%</TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        {!data?.items?.length ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No funders yet
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Address</TableHead>
+                <TableHead className="text-right">Funding</TableHead>
+                <TableHead className="text-right">% of Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data?.items?.map((item, i) => {
+                const inPercentage =
+                  (Number(item.assets ?? 0) / Number(balance?.assets)) * 100;
+                return (
+                  <TableRow key={i}>
+                    <TableCell className="font-mono text-sm">
+                      {item.address}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Amount
+                        amount={item.assets}
+                        symbol={item.token?.symbol}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {inPercentage.toFixed(2)}%
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

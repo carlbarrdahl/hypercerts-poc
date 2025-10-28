@@ -54,85 +54,96 @@ export function Attestations({ id }: { id: Address }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Attestations</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Attestations</CardTitle>
+          <div className="flex gap-3 items-center">
+            <Select
+              value={visibility}
+              onValueChange={(value) => setVisibility(value as Visibility)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="private">Private</SelectItem>
+                <SelectItem value="organization">Organization</SelectItem>
+                <SelectItem value="draft">Public Draft</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+              </SelectContent>
+            </Select>
 
-        <div className="flex gap-4 items-center">
-          <Select
-            value={visibility}
-            onValueChange={(value) => setVisibility(value as Visibility)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select visibility" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="private">Private</SelectItem>
-              <SelectItem value="organization">Organization</SelectItem>
-              <SelectItem value="draft">Public Draft</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button
-            isLoading={isCreating}
-            loadingText="Creating Attestation..."
-            disabled={isCreating || !id}
-            onClick={() =>
-              mutate({
-                recipient: id,
-                visibility,
-                data: {
-                  type: "milestone",
-                  metadata: {
-                    title: "John Doe",
-                    description: "John Doe",
-                    image: "https://via.placeholder.com/150",
-                    geoJSON: {
-                      type: "Polygon",
-                      coordinates: [
-                        [
-                          [0, 0],
-                          [1, 0],
+            <Button
+              isLoading={isCreating}
+              loadingText="Creating..."
+              disabled={isCreating || !id}
+              onClick={() =>
+                mutate({
+                  recipient: id,
+                  visibility,
+                  data: {
+                    type: "milestone",
+                    metadata: {
+                      title: "John Doe",
+                      description: "John Doe",
+                      image: "https://via.placeholder.com/150",
+                      geoJSON: {
+                        type: "Polygon",
+                        coordinates: [
+                          [
+                            [0, 0],
+                            [1, 0],
+                          ],
                         ],
-                      ],
+                      },
                     },
                   },
-                },
-              })
-            }
-          >
-            Create Attestation
-          </Button>
+                })
+              }
+            >
+              Create Attestation
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Attester</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead>Decoded Parsed</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.items?.map((item) => {
-              return (
-                <TableRow>
-                  <TableCell>
-                    <pre>{truncate(item.id)}</pre>
-                  </TableCell>
-                  <TableCell>
-                    <pre>
+        {!data?.items?.length ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No attestations yet
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Attester</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Data</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data?.items?.map((item, i) => {
+                return (
+                  <TableRow key={i}>
+                    <TableCell className="font-mono text-sm">
+                      {truncate(item.id)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
                       <EnsName address={item.attester} />
-                    </pre>
-                  </TableCell>
-                  <TableCell>{timeAgo(item.createdAt)}</TableCell>
-                  <TableCell>{JSON.stringify(item.decodedParsed)}</TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {timeAgo(item.createdAt)}
+                    </TableCell>
+                    <TableCell className="max-w-xs">
+                      <pre className="text-xs overflow-auto">
+                        {JSON.stringify(item.decodedParsed, null, 2)}
+                      </pre>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

@@ -13,38 +13,21 @@ import {
 	WalletClient,
 	Chain,
 	Hex,
-	Client,
-	Transport,
-	Account,
 } from 'viem';
-import {
-	baseSepolia,
-	alchemy,
-	AlchemySmartAccountClient,
-} from '@account-kit/infra';
+import { AlchemySmartAccountClient } from '@account-kit/infra';
 import deployments from './deployments.json';
 import { waitForTransactionReceipt } from 'viem/actions';
-import { createIndexer, VaultPage } from './lib/indexer';
+import { Attestation, createIndexer, VaultPage } from './lib/indexer';
 import { VaultsVariables } from './lib/indexer';
 import { config } from './config';
 import {
-	createMultiOwnerLightAccountAlchemyClient,
-	createMultisigAccountAlchemyClient,
 	MultiOwnerLightAccount,
 	MultiOwnerLightAccountClientActions,
 } from '@account-kit/smart-contracts';
 // import { MultiOwnerLightAccount } from '@account-kit/infra';
-import {
-	LocalAccountSigner,
-	SmartAccountClient,
-	toSmartContractAccount,
-	WalletClientSigner,
-} from '@aa-sdk/core';
+import { WalletClientSigner } from '@aa-sdk/core';
 import { AttestationInput, createAttestation } from './lib/eas';
 import { AttestationQuery, queryAttestations } from './lib/graphql';
-import { TransactionSigner } from '@ethereum-attestation-service/eas-sdk';
-import { BrowserProvider } from 'ethers';
-import { JsonRpcSigner } from 'ethers';
 
 export { HypercertsProvider, useHypercerts } from './components/provider';
 export * from './hooks';
@@ -97,6 +80,11 @@ export type VaultMethods = {
 	query: (variables: VaultsVariables) => Promise<VaultPage | null>;
 };
 
+export type CertMethods = {
+	create: (data: AttestationInput) => Promise<Address>;
+	query: (query: AttestationQuery) => Promise<Attestation[] | null>;
+};
+
 export class HypercertsSDK {
 	#client: WalletClient;
 	#publicClient: PublicClient;
@@ -120,9 +108,7 @@ export class HypercertsSDK {
 		if (!Object.keys(config).includes(String(chain.id)))
 			throw new Error('Chain not supported');
 
-		console.log('chain', chain, baseSepolia);
 		this.#client = wallet;
-		console.log('wallet', wallet);
 		this.#publicClient = createPublicClient({ chain, transport: http() });
 
 		this.indexer = createIndexer(chain.id as keyof typeof config);
@@ -229,7 +215,6 @@ export class HypercertsSDK {
 				pushUpstream = true,
 				receiver: Address = this.#client.account?.address as Address,
 			) => {
-				console.log('fund', { id, amount, pushUpstream, receiver });
 				const contract = this.#vault(getAddress(id));
 				return this.#simulateWriteAndFindEvent({
 					contract,
@@ -257,9 +242,7 @@ export class HypercertsSDK {
 					.read.convertToShares([assets])
 					.then((s) => s as bigint);
 
-				console.log({ assets, shares });
 				const price = assets / shares;
-				console.log({ price });
 				return { assets, shares, price } as {
 					assets: bigint;
 					shares: bigint;
@@ -274,12 +257,7 @@ export class HypercertsSDK {
 				this.indexer.vault.query(variables),
 		};
 	}
-	// attest = {
-	//     create: async(id: string, { type, metadata }) =>
-	//         eas.attest({ data: { type: "milestone", recipient: id, metadata: await upload(metadata) }}),
-	//     query: async(variables) =>
-	//         this.#indexer.query(attestQuery, variables)
-	// }
+
 	async #simulateWriteAndFindEvent<T = any>({
 		contract,
 		functionName,
@@ -294,7 +272,6 @@ export class HypercertsSDK {
 		eventName: string;
 	}): Promise<T> {
 		try {
-			console.log('contract', this.#client);
 			const hash = await (contract.write as any)[functionName]({
 				functionName,
 				args,
@@ -308,10 +285,8 @@ export class HypercertsSDK {
 			});
 			const logs = parseEventLogs({ abi, logs: receipt.logs });
 			const event: any = logs.find((log: any) => log.eventName === eventName);
-			console.log(event);
 			return event.args as T;
 		} catch (err: any) {
-			console.log('err', err);
 			if (err instanceof BaseError) {
 				const revertError = err.walk(
 					(err) => err instanceof ContractFunctionRevertedError,
@@ -325,47 +300,3 @@ export class HypercertsSDK {
 		}
 	}
 }
-
-// export class HypercertSDK {
-// #client: WalletClient;
-// #publicClient: PublicClient;
-
-// 	constructor(client: WalletClient) {
-// 		this.#client = client;
-// this.#publicClient = createPublicClient({
-// 	chain: client.chain,
-// 	transport: http(),
-// });
-// 	}
-
-// 	account = {
-// 		link: async (data: {
-// 			address: string;
-// 			redirectUrl: string;
-// 		}): Promise<string> => {
-// 			Logger.info('Linking account', data);
-// 			return `${HYPERCERTS_URL}/account/link?address=${data.address}&redirectUrl=${encodeURIComponent(data.redirectUrl)}`;
-// 		},
-// 		get: async (address: string): Promise<ComethSmartAccountClient> => {
-// 			Logger.info('Getting account', address);
-// 			const chain = this.#client.chain;
-// 			// const account = await createSafeSmartAccount({
-// 			// 	apiKey,
-// 			// 	publicClient: this.#client,
-// 			// 	chain,
-// 			// });
-
-// 			return createSmartAccountClient({
-// 				account: toSmartContractAccount(this.#client),
-// 				chain,
-// 				bundlerTransport: http(bundlerUrl),
-// 			});
-// 		},
-// 	};
-// }
-
-// const { request } = await this.#publicClient.simulateContract({
-// 	...wagmiContract,
-// 	functionName: 'mint',
-// 	account,
-//   })

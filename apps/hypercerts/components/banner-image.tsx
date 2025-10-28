@@ -19,10 +19,14 @@ export function BannerImage({
   };
   return (
     <div
-      className={cn("relative w-full overflow-hidden", sizes[size], className)}
+      className={cn(
+        "relative w-full rounded-lg overflow-hidden",
+        sizes[size],
+        className
+      )}
     >
       {src ? (
-        <img src={src} alt={alt} fill className="object-cover" />
+        <img src={src} alt={alt} className="object-cover" />
       ) : (
         <div className="bg-muted w-full h-full" />
       )}

@@ -59,8 +59,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       config={{
         defaultChain: hardhat,
         supportedChains: [hardhat],
+
         embeddedWallets: {
           createOnLogin: "users-without-wallets",
+          showWalletUIs: false,
         },
         loginMethods: ["email", "wallet", "google", "github"],
         appearance: {

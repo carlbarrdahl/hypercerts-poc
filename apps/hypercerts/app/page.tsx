@@ -7,7 +7,7 @@ import { VaultsList } from "@/components/vault/list";
 export default function Page() {
   return (
     <div>
-      <CreateVault />
+      {/* <CreateVault /> */}
       <VaultsList />
       {/* <Organisation /> */}
     </div>

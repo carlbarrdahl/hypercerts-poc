@@ -12,6 +12,9 @@ export function Header() {
         <Link href="/account">
           <Button variant="link">Account</Button>
         </Link>
+        <Link href="/certs/create">
+          <Button variant="link">Create</Button>
+        </Link>
       </div>
       <LoginButton />
     </header>
