@@ -1,0 +1,302 @@
+import {
+	Abi,
+	Address,
+	BaseError,
+	ContractFunctionRevertedError,
+	createPublicClient,
+	getAddress,
+	getContract,
+	GetContractReturnType,
+	http,
+	parseEventLogs,
+	PublicClient,
+	WalletClient,
+	Chain,
+	Hex,
+} from 'viem';
+import { AlchemySmartAccountClient } from '@account-kit/infra';
+import deployments from './deployments.json';
+import { waitForTransactionReceipt } from 'viem/actions';
+import { Attestation, createIndexer, VaultPage } from './lib/indexer';
+import { VaultsVariables } from './lib/indexer';
+import { config } from './config';
+import {
+	MultiOwnerLightAccount,
+	MultiOwnerLightAccountClientActions,
+} from '@account-kit/smart-contracts';
+// import { MultiOwnerLightAccount } from '@account-kit/infra';
+import { WalletClientSigner } from '@aa-sdk/core';
+import { AttestationInput, createAttestation } from './lib/eas';
+import { AttestationQuery, queryAttestations } from './lib/graphql';
+
+export { HypercertsProvider, useHypercerts } from './components/provider';
+export * from './hooks';
+export * from './lib/indexer';
+
+const HYPERCERTS_URL = 'http://localhost:3000';
+const ALCHEMY_API_KEY = 'h5dpLw_3pU__4eS0W4WeF';
+
+const { HyperVaultFactory, HyperVault } = deployments[31337];
+
+type HyperVault = (typeof deployments)[31337]['HyperVault'];
+export type HyperVaultConfig = {
+	owner: Address;
+	parent?: Address;
+	asset: Address;
+	percent: bigint;
+	shares: bigint;
+	metadata: Record<string, any>;
+	// metadata: string;
+};
+
+export type AccountMethods = {
+	get: () => Promise<
+		AlchemySmartAccountClient<
+			Chain | undefined,
+			MultiOwnerLightAccount<WalletClientSigner>,
+			MultiOwnerLightAccountClientActions<WalletClientSigner>
+		>
+	>;
+	updateOwners: (params: {
+		ownersToAdd: Address[];
+		ownersToRemove: Address[];
+	}) => Promise<Hex>;
+};
+export type VaultMethods = {
+	create: (config: HyperVaultConfig) => Promise<Address>;
+	update: (id: Address, config: HyperVaultConfig) => Promise<any>;
+	deposit: (id: Address, amount: bigint, receiver?: Address) => Promise<any>;
+	withdraw: (id: Address, amount: bigint, receiver?: Address) => Promise<any>;
+	fund: (
+		id: Address,
+		amount: bigint,
+		pushUpstream?: boolean,
+		receiver?: Address,
+	) => Promise<any>;
+	payout: (id: Address, amount: bigint, recipient: Address) => Promise<any>;
+	balance: (
+		id: Address,
+	) => Promise<{ assets: bigint; shares: bigint; price: bigint }>;
+	query: (variables: VaultsVariables) => Promise<VaultPage | null>;
+};
+
+export type CertMethods = {
+	create: (data: AttestationInput) => Promise<Address>;
+	query: (query: AttestationQuery) => Promise<Attestation[] | null>;
+};
+
+export class HypercertsSDK {
+	#client: WalletClient;
+	#publicClient: PublicClient;
+	#abi = {
+		HyperVaultFactory: HyperVaultFactory.abi as unknown as Abi,
+		HyperVault: HyperVault.abi as unknown as Abi,
+	};
+	#factory: GetContractReturnType<typeof HyperVaultFactory.abi, WalletClient>;
+	#vault: (
+		address: Address,
+	) => GetContractReturnType<typeof HyperVault.abi, WalletClient>;
+	indexer: ReturnType<typeof createIndexer>;
+	// account: AccountMethods;
+	vault: VaultMethods;
+	cert: CertMethods;
+	test?: { token: Address };
+	constructor(wallet?: WalletClient) {
+		const chain = wallet?.chain;
+		console.log('wallet', wallet);
+		if (!wallet || !chain?.id) throw new Error('Chain ID not found');
+		if (!Object.keys(config).includes(String(chain.id)))
+			throw new Error('Chain not supported');
+
+		this.#client = wallet;
+		this.#publicClient = createPublicClient({ chain, transport: http() });
+
+		this.indexer = createIndexer(chain.id as keyof typeof config);
+
+		const client = {
+			public: this.#publicClient,
+			wallet,
+		};
+
+		const { HyperVaultFactory, TestToken } = deployments['31337'];
+		// deployments[chain.id as unknown as '31337'];
+
+		this.#factory = getContract({
+			address: getAddress(HyperVaultFactory.address),
+			abi: HyperVaultFactory.abi,
+			client,
+		});
+		this.#vault = (address: Address) =>
+			getContract({ address, abi: HyperVault.abi, client });
+
+		this.test = {
+			token: TestToken.address as Address,
+		};
+
+		this.cert = {
+			create: async (data: AttestationInput) => {
+				return createAttestation(data, this.#client);
+			},
+			query: async (query: AttestationQuery) => {
+				return queryAttestations(query);
+			},
+		};
+		this.vault = {
+			create: async (config): Promise<Address> => {
+				// Upload metadata to IPFS API
+				const metadataBlob = new Blob([JSON.stringify(config.metadata)], {
+					type: 'application/json',
+				});
+				const formData = new FormData();
+				formData.append('file', metadataBlob, 'metadata.json');
+
+				const response = await fetch('http://localhost:3000/api/ipfs', {
+					method: 'POST',
+					body: formData,
+				});
+
+				if (!response.ok) {
+					throw new Error(`Failed to upload metadata: ${response.statusText}`);
+				}
+
+				const { cid } = await response.json();
+				const metadataURI = cid;
+
+				return this.#simulateWriteAndFindEvent({
+					contract: this.#factory,
+					functionName: 'create',
+					args: [{ ...config, metadataURI }],
+					abi: this.#abi.HyperVaultFactory,
+					eventName: 'Created',
+				}).then((r) => r.id);
+			},
+			update: async (id: Address, config) => {
+				const contract = this.#vault(getAddress(id));
+				return this.#simulateWriteAndFindEvent({
+					contract,
+					functionName: 'update',
+					args: [config],
+					abi: this.#abi.HyperVault,
+					eventName: 'Updated',
+				});
+			},
+			deposit: async (
+				id,
+				amount,
+				receiver = this.#client.account?.address as Address,
+			) => {
+				const contract = this.#vault(getAddress(id));
+
+				return this.#simulateWriteAndFindEvent({
+					contract,
+					functionName: 'deposit',
+					args: [amount, receiver],
+					abi: this.#abi.HyperVault,
+					eventName: 'Deposit',
+				});
+			},
+			withdraw: async (
+				id,
+				amount,
+				receiver = this.#client.account?.address as Address,
+			) => {
+				const contract = this.#vault(getAddress(id));
+				return this.#simulateWriteAndFindEvent({
+					contract,
+					functionName: 'withdraw',
+					args: [amount, receiver, receiver],
+					abi: this.#abi.HyperVault,
+					eventName: 'Withdraw',
+				});
+			},
+			fund: async (
+				id,
+				amount,
+				pushUpstream = true,
+				receiver: Address = this.#client.account?.address as Address,
+			) => {
+				const contract = this.#vault(getAddress(id));
+				return this.#simulateWriteAndFindEvent({
+					contract,
+					functionName: 'fund',
+					args: [amount, receiver],
+					abi: this.#abi.HyperVault,
+					eventName: 'Funded',
+				});
+			},
+			payout: async (id, amount, recipient) => {
+				const contract = this.#vault(getAddress(id));
+				return this.#simulateWriteAndFindEvent({
+					contract,
+					functionName: 'payout',
+					args: [amount, recipient],
+					abi: this.#abi.HyperVault,
+					eventName: 'Payout',
+				});
+			},
+			balance: async (id) => {
+				const assets = await this.#vault(getAddress(id))
+					.read.totalAssets()
+					.then((a) => a as bigint);
+				const shares = await this.#vault(getAddress(id))
+					.read.convertToShares([assets])
+					.then((s) => s as bigint);
+
+				const price = assets / shares;
+				return { assets, shares, price } as {
+					assets: bigint;
+					shares: bigint;
+					price: bigint;
+				};
+			},
+			// shares: async (id: Address): Promise<bigint | undefined> =>
+			// 	this.#vault(getAddress(id)).read.convertToShares([
+			// 		await this.vault.balance(id),
+			// 	]) as Promise<bigint | undefined>,
+			query: async (variables: VaultsVariables) =>
+				this.indexer.vault.query(variables),
+		};
+	}
+
+	async #simulateWriteAndFindEvent<T = any>({
+		contract,
+		functionName,
+		args,
+		abi,
+		eventName,
+	}: {
+		contract: any;
+		functionName: string;
+		args?: any[];
+		abi: Abi;
+		eventName: string;
+	}): Promise<T> {
+		try {
+			const hash = await (contract.write as any)[functionName]({
+				functionName,
+				args,
+				account: this.#client.account,
+			});
+			// Send the transaction with the HyperAccount
+			// const receipt = await waitForTransactionReceipt(await this.account.get(), {
+
+			const receipt = await waitForTransactionReceipt(this.#client, {
+				hash,
+			});
+			const logs = parseEventLogs({ abi, logs: receipt.logs });
+			const event: any = logs.find((log: any) => log.eventName === eventName);
+			return event.args as T;
+		} catch (err: any) {
+			if (err instanceof BaseError) {
+				const revertError = err.walk(
+					(err) => err instanceof ContractFunctionRevertedError,
+				);
+				if (revertError instanceof ContractFunctionRevertedError) {
+					const errorName = revertError.data?.errorName ?? '';
+					throw new Error(errorName);
+				}
+			}
+			throw err;
+		}
+	}
+}

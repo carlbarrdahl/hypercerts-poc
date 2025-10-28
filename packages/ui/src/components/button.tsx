@@ -1,8 +1,8 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
-import { LoaderIcon, LucideIcon } from "lucide-react"
-import { cn } from "@workspace/ui/lib/utils"
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { LoaderIcon, LucideIcon } from "lucide-react";
+import { cn } from "@workspace/ui/lib/utils";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
@@ -33,8 +33,7 @@ const buttonVariants = cva(
       size: "default",
     },
   }
-)
-
+);
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -62,7 +61,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       iconRight: RightIcon,
       ...props
     },
-    ref,
+    ref
   ) => {
     const Comp = asChild ? Slot : "button";
     const LeftIcon = isLoading ? LoaderIcon : icon || iconLeft;
@@ -72,8 +71,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type="button"
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        disabled={isLoading}
         {...props}
+        disabled={isLoading || props.disabled}
       >
         <>
           {LeftIcon && (
@@ -91,7 +90,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         </>
       </Comp>
     );
-  },
+  }
 );
 Button.displayName = "Button";
 

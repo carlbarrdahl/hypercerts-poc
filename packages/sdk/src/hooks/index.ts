@@ -5,65 +5,94 @@ import {
 	useQuery,
 	UseQueryResult,
 } from '@tanstack/react-query';
-import { Address } from 'viem';
-import { OrganizationAccount } from '..';
-import { Attestation, AttestationQuery } from '../lib/graphql';
-import { AttestationInput } from '../lib/eas';
+// import { OrganizationAccount } from '..';
+import { HyperVaultConfig } from '..';
+import {
+	ContributorsVariables,
+	VaultPage,
+	VaultsVariables,
+} from '../lib/indexer';
+import {
+	ContributorPage,
+	AttestationPage,
+	AttestationVariables,
+} from '../lib/indexer';
+import { Attestation } from '../lib/indexer';
 import { Transaction } from 'viem';
-import { TransactionSigner } from '@ethereum-attestation-service/eas-sdk';
+import { AttestationInput } from '../lib/eas';
 
-export function useHypercertsAccount(
-	address: Address,
-): UseQueryResult<Address[] | undefined, Error> {
-	const { sdk } = useHypercerts();
-	return useQuery({
-		queryKey: ['account', address],
-		queryFn: () => sdk?.account.get(address!),
-		enabled: !!address,
-	});
-}
-
-export function useHypercertsOrganization(
-	address: Address,
-): UseQueryResult<OrganizationAccount | undefined, Error> {
-	const { sdk } = useHypercerts();
-	return useQuery({
-		queryKey: ['organization', address],
-		queryFn: async () => sdk?.organization.get(address!),
-		enabled: !!address,
-	});
-}
-
-export function useHypercertsPrepareOrganization(
-	address: Address,
-): UseQueryResult<OrganizationAccount | undefined, Error> {
-	const { sdk } = useHypercerts();
-	return useQuery({
-		queryKey: ['organization', address],
-		queryFn: async () => sdk?.organization.prepare(address!),
-		enabled: !!address,
-	});
-}
-
-export function useHypercertsCreateAttestation(
-	signer: TransactionSigner,
-): UseMutationResult<Transaction<string> | undefined, Error, AttestationInput> {
+type Opts = {
+	enabled?: boolean;
+	refetchInterval?: number;
+	select?: (data: any) => any;
+};
+export function useCreateHypercerts() {
 	const { sdk } = useHypercerts();
 	return useMutation({
-		mutationFn: async (data: AttestationInput) =>
-			sdk?.cert.create(data, signer),
+		mutationFn: async (config: HyperVaultConfig) => sdk?.vault.create(config),
+	});
+}
+
+export function useListHypercerts(
+	variables: VaultsVariables,
+	opts?: Opts,
+): UseQueryResult<VaultPage | null | undefined, Error> {
+	const { sdk } = useHypercerts();
+
+	return useQuery({
+		queryKey: ['vaults', { variables }],
+		queryFn: () => sdk?.indexer.vault.query(variables) ?? null,
+		enabled: Boolean(sdk),
+		...opts,
+	});
+}
+
+export function useListContributors(
+	variables: ContributorsVariables,
+	opts?: Opts,
+): UseQueryResult<ContributorPage | null | undefined, Error> {
+	const { sdk } = useHypercerts();
+	return useQuery({
+		queryKey: ['contributors', { variables }],
+		queryFn: () => sdk?.indexer.contributor.query(variables) ?? null,
+
+		...opts,
+	});
+}
+
+export function useListFunders(
+	variables: ContributorsVariables,
+	opts?: Opts,
+): UseQueryResult<ContributorPage | null | undefined, Error> {
+	const { sdk } = useHypercerts();
+	return useQuery({
+		queryKey: ['funders', { variables }],
+		queryFn: () => sdk?.indexer.funder.query(variables) ?? null,
+		...opts,
+	});
+}
+
+export function useHypercertsCreateAttestation(): UseMutationResult<
+	Transaction<string> | undefined,
+	Error,
+	AttestationInput
+> {
+	const { sdk } = useHypercerts();
+	return useMutation({
+		mutationFn: async (data: AttestationInput) => sdk?.cert.create(data),
 	});
 }
 
 export function useHypercertsAttestations(
-	query: AttestationQuery,
-	opts: { enabled?: boolean },
-): UseQueryResult<Attestation[] | undefined, Error> {
+	query: AttestationVariables,
+	opts?: Opts,
+): UseQueryResult<AttestationPage | null | undefined, Error> {
 	const { sdk } = useHypercerts();
+
+	console.log('sdk', query);
 	return useQuery({
 		queryKey: ['attestations', query],
-		queryFn: async () =>
-			sdk?.cert.query(query).then(({ data }) => data.attestations),
+		queryFn: async () => sdk?.indexer.attestation.query(query),
 		...opts,
 	});
 }

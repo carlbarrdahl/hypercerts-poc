@@ -6,21 +6,23 @@ import {
 	useState,
 	type PropsWithChildren,
 } from 'react';
-import { HypercertSDK } from '..';
+import { HypercertsSDK } from '..';
+import { WalletClient } from 'viem';
 
 const HypercertsContext = createContext<HypercertsContextType>({
 	sdk: null,
 });
 
 type HypercertsContextType = {
-	sdk: HypercertSDK | null;
+	sdk: HypercertsSDK | null;
 };
 
 export function HypercertsProvider({
 	children,
-	chainId,
-}: PropsWithChildren<{ chainId: number }>): React.ReactNode {
-	const [sdk] = useState<HypercertSDK | null>(new HypercertSDK({ chainId }));
+	client,
+}: PropsWithChildren<{ client?: WalletClient }>): React.ReactNode {
+	const [sdk] = useState<HypercertsSDK | null>(new HypercertsSDK(client));
+	console.log('Initializing HypercertsProvider', sdk);
 	return (
 		<HypercertsContext.Provider value={{ sdk }}>
 			{children}

@@ -1,6 +1,7 @@
 import { Client, cacheExchange, fetchExchange } from '@urql/core';
 import { Address } from 'viem';
 
+export const INDEXER_URL = 'http://localhost:42069';
 export const client = new Client({
 	url: 'https://base-sepolia.easscan.org/graphql',
 	exchanges: [cacheExchange, fetchExchange],
@@ -17,7 +18,7 @@ query Attestations($where: AttestationWhereInput, $take: Int, $skip: Int, $order
   }
 }`;
 
-type Where<T> = { equals?: T, in?: T[] };
+type Where<T> = { equals?: T; in?: T[] };
 export type AttestationQuery = {
 	where: {
 		attester: Where<Address>;
