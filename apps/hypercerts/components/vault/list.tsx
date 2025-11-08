@@ -91,22 +91,13 @@ export function Vault({
         <p className="text-xs text-muted-foreground mb-3 leading-relaxed line-clamp-3">
           {metadata?.description || "No description available."}
         </p>
-        <div className="space-y-2 mb-3 text-xs">
+        <div className="mb-3 text-xs">
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Assets:</span>
+            <span className="text-muted-foreground">Funding:</span>
             <span className="font-medium">
+              $
               {balance?.assets ? (
                 <Amount amount={balance.assets} hideSymbol />
-              ) : (
-                "--"
-              )}
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Shares:</span>
-            <span className="font-medium">
-              {balance?.shares ? (
-                <Amount amount={balance.shares} hideSymbol />
               ) : (
                 "--"
               )}

@@ -27,12 +27,13 @@ export const AttestationInputSchema = z.object({
 			title: z.string(),
 			description: z.string().optional(),
 			image: z.string().optional(),
-			geoJSON: z
-				.object({
-					type: z.string(),
-					coordinates: z.array(z.array(z.array(z.number()))),
-				})
-				.optional(),
+			geoJSON: z.string().optional(),
+			// geoJSON: z
+			// 	.object({
+			// 		type: z.string(),
+			// 		coordinates: z.array(z.array(z.array(z.number()))),
+			// 	})
+			// 	.optional(),
 		}),
 	}),
 	/*

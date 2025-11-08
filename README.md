@@ -4,10 +4,14 @@ This Hypercerts concept implements Vaults as the foundation for Hypercerts and E
 
 EAS attestations can be created offchain for private data. These can later be published onchain for immutability.
 
-Why?
+### Why?
 
 - building on EAS for transparent, verifiable, auditable claims and data
 - consistent data structures for onchain and offchain attestations
+
+---
+
+---
 
 - Frontend
   - [ ] auth
