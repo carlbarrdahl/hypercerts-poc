@@ -1,3 +1,3 @@
-// Re-export pathway data from local data directory
-export { oneEarthFramework } from "@/data/solutions";
+// Re-export pathway data from solutions package
+export { oneEarthFramework } from "@workspace/solutions";
 

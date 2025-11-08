@@ -1,4 +1,4 @@
-import { oneEarthFramework } from "@/data/solutions";
+import { oneEarthFramework } from "@workspace/solutions";
 import { pathwayImages } from "@/data/pathway-images";
 import { generatePathwaySlug } from "@/lib/pathway-utils";
 import {

@@ -7,6 +7,7 @@
     "build": "npx hardhat compile",
     "test": "npx hardhat test nodejs",
     "deploy": "npm run build && npx hardhat ignition deploy ignition/modules/Deploy.ts --network localhost --reset && npm run generate-abi",
+    "seed": "bun run scripts/seed-vaults.ts",
     "generate-abi": "bun run scripts/generate-abi.ts",
     "lint": "forge fmt",
     "lint:fix": "forge fmt --fix"
@@ -23,6 +24,8 @@
   "dependencies": {
     "@ethereum-attestation-service/eas-contracts": "^1.8.0",
     "@openzeppelin/contracts": "^5.4.0",
-    "@openzeppelin/contracts-upgradeable": "^5.4.0"
+    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "@workspace/sdk": "workspace:*",
+    "@workspace/solutions": "workspace:*"
   }
 }

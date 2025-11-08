@@ -1,0 +1,45 @@
+{
+  "name": "@workspace/solutions",
+  "description": "One Earth Solutions Framework data",
+  "version": "0.1.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "module": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "bunup",
+    "dev": "bunup --watch",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "tsc": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "@types/bun": "^1.2.20",
+    "bumpp": "^10.2.3",
+    "bunup": "^0.11.0",
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "^5.9.2"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "bun run lint:fix && git add ."
+  },
+  "license": "MIT"
+}

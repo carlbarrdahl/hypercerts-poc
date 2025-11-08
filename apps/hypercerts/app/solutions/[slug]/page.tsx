@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { oneEarthFramework } from "@/data/solutions";
+import { oneEarthFramework } from "@workspace/solutions";
 import { pathwayImages } from "@/data/pathway-images";
 import { findPathwayBySlug, generatePathwaySlug } from "@/lib/pathway-utils";
 import Link from "next/link";
