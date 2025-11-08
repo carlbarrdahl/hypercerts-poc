@@ -1,7 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useHypercerts, useListContributors } from "@workspace/sdk";
+import {
+  useHypercerts,
+  useListContributors,
+  calculateVaultLevel,
+  getVaultLevelLabel,
+} from "@workspace/sdk";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { useState } from "react";
@@ -55,6 +60,32 @@ export function VaultDetails({ id }: { id: Address }) {
     }
   );
   const creator = creatorData?.items?.[0];
+
+  // Fetch parent vault if it exists
+  const { data: parentVault } = useQuery({
+    queryKey: ["vault", "parent", vault?.parent],
+    queryFn: () =>
+      vault?.parent
+        ? (sdk?.vault.query({ where: { id: vault.parent }, limit: 1 }) ?? null)
+        : null,
+    select: (data) => data?.items[0],
+    enabled: Boolean(vault?.parent),
+    refetchInterval: 1000,
+  });
+
+  // Fetch children vaults
+  const { data: childrenVaults } = useQuery({
+    queryKey: ["vault", "children", id],
+    queryFn: () =>
+      sdk?.vault.query({ where: { parent: id as Address } }) ?? null,
+    select: (data) => data?.items || [],
+    enabled: Boolean(id),
+    refetchInterval: 1000,
+  });
+
+  // Calculate vault level
+  const vaultLevel = vault ? calculateVaultLevel(vault, parentVault) : 0;
+  const vaultLevelLabel = getVaultLevelLabel(vaultLevel);
 
   const [amount, setAmount] = useState<number | null>(null);
 
@@ -189,6 +220,12 @@ export function VaultDetails({ id }: { id: Address }) {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">Level</span>
+                <span className="px-2 py-1 bg-foreground/5 text-foreground rounded-full text-xs font-medium">
+                  {vaultLevelLabel}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-sm text-muted-foreground">
                   Total Assets
                 </span>
@@ -233,6 +270,66 @@ export function VaultDetails({ id }: { id: Address }) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Hierarchy Section */}
+        {(parentVault || (childrenVaults && childrenVaults.length > 0)) && (
+          <div className="grid gap-6 md:grid-cols-2 mb-8">
+            {/* Parent Vault */}
+            {parentVault && (
+              <Card className="border border-border">
+                <CardHeader>
+                  <CardTitle>Parent Vault</CardTitle>
+                  <CardDescription>
+                    This vault sends{" "}
+                    {vault?.percent ? Number(vault.percent) / 100 : 0}% of
+                    funding upstream
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link
+                    href={`/certs/${parentVault.id}`}
+                    className="block p-3 bg-muted/50 hover:bg-muted rounded-lg transition-colors"
+                  >
+                    <div className="font-medium text-sm mb-1">
+                      {parentVault.metadata?.title || "Untitled Vault"}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {parentVault.id}
+                    </div>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Child Vaults */}
+            {childrenVaults && childrenVaults.length > 0 && (
+              <Card className="border border-border">
+                <CardHeader>
+                  <CardTitle>Child Vaults ({childrenVaults.length})</CardTitle>
+                  <CardDescription>
+                    Vaults that send funding upstream to this vault
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {childrenVaults.map((child) => (
+                    <Link
+                      key={child.id}
+                      href={`/certs/${child.id}`}
+                      className="block p-3 bg-muted/50 hover:bg-muted rounded-lg transition-colors"
+                    >
+                      <div className="font-medium text-sm mb-1">
+                        {child.metadata?.title || "Untitled Vault"}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {child.id}
+                      </div>
+                    </Link>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
 
         {address && (
           <Card className="border border-border">

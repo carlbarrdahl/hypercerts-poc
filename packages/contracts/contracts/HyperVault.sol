@@ -38,19 +38,33 @@ contract HyperVaultFactory {
 /**
  * @title HyperVault
  * @notice ERC4626 vault that can have a parent vault, creating a tree structure
- * @dev Each vault has its own token, but pushes value to parent
+ * @dev Supports pillar => sub-pillar => pathway hierarchy with upstream value distribution
  */
 contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     Config public config;
 
+    // Track child vaults for tree navigation
+    mapping(address => bool) public isChildVault;
+    address[] public childVaults;
+
+    // Track upstream value sent
+    uint256 public totalUpstreamSent;
+
+    // Max percent is 10000 (100%)
+    uint256 public constant MAX_PERCENT = 10000;
+
     event Funded(
         address indexed sender,
-        address indexed owner,
-        uint256 assets
-        // uint256 assetsToParent
+        address indexed receiver,
+        uint256 assets,
+        uint256 assetsToParent
     );
+
+    event ValuePushedUpstream(address indexed parent, uint256 amount);
+
+    event ChildVaultRegistered(address indexed child);
 
     constructor() {
         _disableInitializers();
@@ -60,7 +74,14 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
         __ERC20_init("Hypercert", "cert");
         __ERC4626_init(config_.asset);
 
+        require(config_.percent <= MAX_PERCENT, "HyperVault: percent too high");
+
         config = config_;
+
+        // Register with parent if exists
+        if (address(config_.parent) != address(0)) {
+            config_.parent.registerChild();
+        }
 
         if (config_.shares > 0) {
             _mint(config_.owner, config_.shares);
@@ -68,6 +89,22 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
         }
     }
 
+    /**
+     * @notice Register a child vault (called by child during initialization)
+     */
+    function registerChild() external {
+        require(!isChildVault[msg.sender], "HyperVault: already registered");
+        isChildVault[msg.sender] = true;
+        childVaults.push(msg.sender);
+        emit ChildVaultRegistered(msg.sender);
+    }
+
+    /**
+     * @notice Fund this vault and optionally push value upstream based on percent
+     * @param assets Amount to fund
+     * @param receiver Address to emit in event (for tracking)
+     * @return Total assets added to the vault system
+     */
     function fund(
         uint256 assets,
         address receiver
@@ -77,10 +114,76 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
         // Transfer underlying from caller into vault
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), assets);
 
-        emit Funded(msg.sender, receiver, assets);
+        // Calculate upstream amount if parent exists
+        uint256 upstreamAmount = 0;
+        if (address(config.parent) != address(0) && config.percent > 0) {
+            upstreamAmount = (assets * config.percent) / MAX_PERCENT;
+            _pushValueUpstream(upstreamAmount);
+        }
 
-        // Return assets to keep signature/return shape similar to deposit (deposit returns shares,
-        // but fund does not mint shares so we return the assets transferred).
+        uint256 localAssets = assets - upstreamAmount;
+
+        emit Funded(msg.sender, receiver, localAssets, upstreamAmount);
+
         return assets;
+    }
+
+    /**
+     * @notice Push value to parent vault recursively
+     * @dev This benefits all holders in the parent vault and continues up the tree
+     */
+    function _pushValueUpstream(uint256 amount) internal {
+        if (address(config.parent) == address(0) || amount == 0) return;
+
+        // Approve parent vault to take assets
+        IERC20(asset()).approve(address(config.parent), amount);
+
+        // Recursively push upstream by calling parent's fund function
+        config.parent.fund(amount, address(this));
+
+        totalUpstreamSent += amount;
+        emit ValuePushedUpstream(address(config.parent), amount);
+    }
+
+    /**
+     * @notice Get the parent vault address
+     * @return Address of the parent vault (zero address if root)
+     */
+    function getParent() external view returns (address) {
+        return address(config.parent);
+    }
+
+    /**
+     * @notice Get this vault's level in the tree
+     * @return level 0 for root (pillar), 1 for sub-pillar, 2 for pathway, etc.
+     */
+    function getTreeLevel() external view returns (uint256 level) {
+        HyperVault parent = config.parent;
+
+        while (address(parent) != address(0)) {
+            level++;
+            address nextParent = parent.getParent();
+            if (nextParent == address(0)) break;
+            parent = HyperVault(nextParent);
+            // Safety check to prevent infinite loops
+            if (level > 100) break;
+        }
+        return level;
+    }
+
+    /**
+     * @notice Get all child vault addresses
+     * @return Array of child vault addresses
+     */
+    function getChildVaults() external view returns (address[] memory) {
+        return childVaults;
+    }
+
+    /**
+     * @notice Get the number of child vaults
+     * @return Count of child vaults
+     */
+    function getChildVaultCount() external view returns (uint256) {
+        return childVaults.length;
     }
 }

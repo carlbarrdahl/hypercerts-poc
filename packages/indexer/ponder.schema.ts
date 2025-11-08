@@ -47,10 +47,11 @@ export const withdraw = onchainTable("withdraw", (t) => ({
 
 export const funding = onchainTable("funding", (t) => ({
   id: t.hex().primaryKey(),
+  vault: t.hex(),
   sender: t.hex(),
-  owner: t.hex(),
+  receiver: t.hex(),
   assets: t.bigint(),
-  shares: t.bigint(),
+  assetsToParent: t.bigint(),
   token: t.json().$type<Token>(),
   createdAt: t.timestamp(),
 }));

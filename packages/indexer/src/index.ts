@@ -124,22 +124,27 @@ ponder.on("HyperVault:Withdraw", async ({ event, context }) => {
 ponder.on("HyperVault:Funded", async ({ event, context }) => {
   const {
     log: { address: id },
-    args: { sender, owner, assets },
+    args: { sender, receiver, assets, assetsToParent },
   } = event;
 
   const asset = await fetchAsset(id, context.client);
   const [decimals, symbol] = await fetchToken(asset, context.client);
   const token = { address: asset, symbol, decimals };
+
+  // Insert funding record with correct field names
   await context.db.insert(funding).values({
     id: event.id,
     vault: id,
-    owner,
     sender,
+    receiver,
     assets,
+    assetsToParent,
     token,
     createdAt: toTimestamp(event.block.timestamp),
   });
 
+  // Track funder aggregates (only count direct funders, not upstream receivers)
+  // Only track if sender is not a vault (i.e., it's a real user/address)
   await context.db
     .insert(funder)
     .values({

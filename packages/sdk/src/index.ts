@@ -33,6 +33,14 @@ export { HypercertsProvider, useHypercerts } from './components/provider';
 export * from './hooks';
 export * from './lib/indexer';
 
+// Explicitly re-export hierarchy helper functions
+export {
+	getVaultChildren,
+	getVaultLevel,
+	calculateVaultLevel,
+	getVaultLevelLabel,
+} from './lib/indexer';
+
 const HYPERCERTS_URL = 'http://localhost:3000';
 const ALCHEMY_API_KEY = 'h5dpLw_3pU__4eS0W4WeF';
 
@@ -47,6 +55,27 @@ export type HyperVaultConfig = {
 	shares: bigint;
 	metadata: Record<string, any>;
 	// metadata: string;
+};
+
+// Hierarchy types for pillar => sub-pillar => pathway structure
+export enum VaultLevel {
+	PILLAR = 0,
+	SUB_PILLAR = 1,
+	PATHWAY = 2,
+}
+
+export type VaultHierarchy = {
+	address: Address;
+	level: VaultLevel;
+	parent?: Address;
+	children: Address[];
+	metadata: Record<string, any>;
+};
+
+export type VaultTreeNode = {
+	vault: Address;
+	level: VaultLevel;
+	children: VaultTreeNode[];
 };
 
 export type AccountMethods = {
@@ -78,6 +107,13 @@ export type VaultMethods = {
 		id: Address,
 	) => Promise<{ assets: bigint; shares: bigint; price: bigint }>;
 	query: (variables: VaultsVariables) => Promise<VaultPage | null>;
+	getParent: (id: Address) => Promise<Address | null>;
+	getChildVaults: (id: Address) => Promise<Address[]>;
+	getTreeLevel: (id: Address) => Promise<number>;
+	getTotalUpstreamSent: (id: Address) => Promise<bigint>;
+	isChildVault: (id: Address, child: Address) => Promise<boolean>;
+	getHierarchy: (id: Address) => Promise<VaultHierarchy>;
+	getFullTree: (rootId: Address) => Promise<VaultTreeNode>;
 };
 
 export type CertMethods = {
@@ -239,10 +275,12 @@ export class HypercertsSDK {
 					.read.totalAssets()
 					.then((a) => a as bigint);
 				const shares = await this.#vault(getAddress(id))
-					.read.convertToShares([assets])
+					.read.totalSupply()
 					.then((s) => s as bigint);
 
-				const price = assets / shares;
+				// Avoid division by zero when vault has no shares yet
+				const price = shares > 0n ? assets / shares : 0n;
+
 				return { assets, shares, price } as {
 					assets: bigint;
 					shares: bigint;
@@ -255,6 +293,80 @@ export class HypercertsSDK {
 			// 	]) as Promise<bigint | undefined>,
 			query: async (variables: VaultsVariables) =>
 				this.indexer.vault.query(variables),
+			getParent: async (id: Address): Promise<Address | null> => {
+				const parentAddr = await this.#vault(getAddress(id))
+					.read.getParent()
+					.then((addr) => addr as Address);
+				return parentAddr === '0x0000000000000000000000000000000000000000'
+					? null
+					: parentAddr;
+			},
+			getChildVaults: async (id: Address): Promise<Address[]> => {
+				return this.#vault(getAddress(id))
+					.read.getChildVaults()
+					.then((vaults) => vaults as Address[]);
+			},
+			getTreeLevel: async (id: Address): Promise<number> => {
+				return this.#vault(getAddress(id))
+					.read.getTreeLevel()
+					.then((level) => Number(level));
+			},
+			getTotalUpstreamSent: async (id: Address): Promise<bigint> => {
+				return this.#vault(getAddress(id))
+					.read.totalUpstreamSent()
+					.then((amount) => amount as bigint);
+			},
+			isChildVault: async (id: Address, child: Address): Promise<boolean> => {
+				return this.#vault(getAddress(id))
+					.read.isChildVault([child])
+					.then((isChild) => isChild as boolean);
+			},
+			getHierarchy: async (id: Address): Promise<VaultHierarchy> => {
+				const vault = this.#vault(getAddress(id));
+				const [level, children, config] = await Promise.all([
+					vault.read.getTreeLevel().then((l) => Number(l)),
+					vault.read.getChildVaults().then((c) => c as Address[]),
+					vault.read.config(),
+				]);
+
+				const hierarchy: VaultHierarchy = {
+					address: getAddress(id),
+					level: level as VaultLevel,
+					children,
+					metadata: {}, // Would need to fetch from IPFS using metadataURI from config
+				};
+
+				// @ts-ignore - config structure
+				if (
+					config.parent &&
+					config.parent !== '0x0000000000000000000000000000000000000000'
+				) {
+					// @ts-ignore
+					hierarchy.parent = config.parent as Address;
+				}
+
+				return hierarchy;
+			},
+			getFullTree: async (rootId: Address): Promise<VaultTreeNode> => {
+				const buildTree = async (vaultId: Address): Promise<VaultTreeNode> => {
+					const [level, children] = await Promise.all([
+						this.vault.getTreeLevel(vaultId),
+						this.vault.getChildVaults(vaultId),
+					]);
+
+					const childNodes = await Promise.all(
+						children.map((child) => buildTree(child)),
+					);
+
+					return {
+						vault: vaultId,
+						level: level as VaultLevel,
+						children: childNodes,
+					};
+				};
+
+				return buildTree(rootId);
+			},
 		};
 	}
 

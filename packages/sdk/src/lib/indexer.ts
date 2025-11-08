@@ -409,3 +409,55 @@ function mapTimestamps<
 		})),
 	};
 }
+
+// Hierarchy Helper Functions
+
+/**
+ * Get all child vaults for a given parent vault ID
+ */
+export async function getVaultChildren(
+	indexer: ReturnType<typeof createIndexer>,
+	parentId: Address,
+): Promise<Vault[]> {
+	const result = await indexer.vault.query({
+		where: { parent: parentId },
+	});
+	return result?.items || [];
+}
+
+/**
+ * Calculate vault level in hierarchy by counting parent hops
+ * @returns 0 for Pillar (root), 1 for Sub-Pillar, 2 for Pathway, etc.
+ */
+export function getVaultLevel(vault: Vault | null | undefined): number {
+	if (!vault) return 0;
+	if (!vault.parent) return 0;
+	// Note: For accurate level calculation with deep hierarchies,
+	// you'd need to recursively fetch parent vaults. For now, we use a simple heuristic:
+	// - No parent = level 0 (Pillar)
+	// - Has parent = we'll need to fetch the parent to determine
+	// For the simple 3-level case, we can infer from parent's parent
+	return 1; // This will be enhanced in the UI where we have access to all vaults
+}
+
+/**
+ * Calculate vault level with access to parent vault data
+ */
+export function calculateVaultLevel(
+	vault: Vault | null | undefined,
+	parentVault?: Vault | null,
+): number {
+	if (!vault) return 0;
+	if (!vault.parent) return 0; // Root level - Pillar
+	if (!parentVault) return 1; // Has parent but parent not loaded - assume Sub-Pillar
+	if (!parentVault.parent) return 1; // Parent is root - this is Sub-Pillar
+	return 2; // Parent has parent - this is Pathway
+}
+
+/**
+ * Get label for vault level
+ */
+export function getVaultLevelLabel(level: number): string {
+	const labels = ['Pillar', 'Sub-Pillar', 'Pathway'];
+	return labels[level] || `Level ${level}`;
+}
