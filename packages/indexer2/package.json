@@ -1,0 +1,36 @@
+{
+  "name": "indexer",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ponder dev --schema dev",
+    "start": "ponder start",
+    "db": "ponder db",
+    "codegen": "ponder codegen",
+    "lint": "eslint .",
+    "typecheck": "tsc",
+    "migrate": "curl -X POST http://localhost:42069/migrate"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.3.10",
+    "@ponder/client": "^0.13.8",
+    "hono": "^4.9.9",
+    "node-fetch-cache": "^5.0.2",
+    "p-retry": "^7.0.0",
+    "pg": "^8.16.3",
+    "ponder": "^0.13.8",
+    "viem": "^2.37.11"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.2",
+    "drizzle-kit": "^0.31.5",
+    "eslint": "^9.36.0",
+    "eslint-config-ponder": "^0.13.8",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.14"
+  }
+}

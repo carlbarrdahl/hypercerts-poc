@@ -11,38 +11,38 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "hardhat/console.sol";
 struct Config {
     IERC20 asset;
-    HyperVault parent;
+    HyperVaultNested parent;
     uint256 percent;
     string metadata;
 }
 
-contract HyperVaultFactory {
+contract HyperVaultNestedFactory {
     event Created(address indexed id, Config config);
 
     address public immutable implementation;
 
     constructor() {
-        implementation = address(new HyperVault());
+        implementation = address(new HyperVaultNested());
     }
 
-    function create(Config memory config) external returns (HyperVault) {
+    function create(Config memory config) external returns (HyperVaultNested) {
         address clone = Clones.clone(implementation);
-        HyperVault(clone).initialize(config);
+        HyperVaultNested(clone).initialize(config);
         emit Created(clone, config);
-        return HyperVault(clone);
+        return HyperVaultNested(clone);
     }
 }
 
 /**
- * @title HyperVault
+ * @title HyperVaultNested
  * @notice ERC4626 vault that can have a parent vault, creating a tree structure
  * @dev Each vault has its own token, but pushes value to parent
  */
-contract HyperVault is Initializable, ERC4626Upgradeable {
+contract HyperVaultNested is Initializable, ERC4626Upgradeable {
     using SafeERC20 for IERC20;
 
     Config public config;
-    HyperVault public parent;
+    HyperVaultNested public parent;
     uint256 public percent; // Basis points (10000 = 100%)
 
     mapping(address => bool) public isChildVault;
@@ -187,7 +187,7 @@ contract HyperVault is Initializable, ERC4626Upgradeable {
     //  * @return level 0 for root, increases down the tree
     //  */
     // function getTreeLevel() external view returns (uint256 level) {
-    //     HyperVault current = this;
+    //     HyperVaultNested current = this;
     //     while (address(current.parent()) != address(0)) {
     //         level++;
     //         current = current.parent();

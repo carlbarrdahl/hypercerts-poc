@@ -11,15 +11,17 @@ export default async function CertPage({
 }) {
   const { id } = await params;
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
+    <div className="min-h-screen bg-background">
       <VaultDetails id={id} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ContributorsList id={id} />
-        <FundersList id={id} />
-      </div>
+      <div className="max-w-4xl mx-auto px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <ContributorsList id={id} />
+          <FundersList id={id} />
+        </div>
 
-      <Attestations id={id} />
+        <Attestations id={id} />
+      </div>
     </div>
   );
 }
