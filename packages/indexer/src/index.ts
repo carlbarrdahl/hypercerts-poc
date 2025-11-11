@@ -41,6 +41,7 @@ ponder.on("HyperVaultFactory:Created", async ({ event, context }) => {
     token: { address: asset, symbol, decimals },
     percent,
     metadata,
+    type: metadata.type || null,
     createdAt: toTimestamp(event.block.timestamp),
   });
 });
@@ -175,6 +176,7 @@ type Metadata = {
   title: string;
   description?: string;
   image?: string;
+  type?: string; // "solution" or "region"
 };
 async function fetchMetadata(cid: string): Promise<Metadata> {
   console.log("Fetching metadata for:", cid);

@@ -1,7 +1,8 @@
 import { Geist, IBM_Plex_Mono } from "next/font/google";
 
 import "@workspace/ui/globals.css";
-import { Providers } from "@/components/providers";
+// import { Providers } from "@/components/providers";
+import { Providers } from "@/components/providers-local";
 import { Header } from "@/components/header";
 import { MintTokens } from "@/components/dev/mint-tokens";
 

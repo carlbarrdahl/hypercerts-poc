@@ -1,31 +1,19 @@
-import { notFound } from "next/navigation";
-import type { Metadata } from "next";
-import { oneEarthFramework } from "@workspace/solutions";
+"use client";
+
+import { notFound, use } from "react";
+import { oneEarthFramework } from "@workspace/oneearth";
 import { pathwayImages } from "@/data/pathway-images";
 import { findPathwayBySlug, generatePathwaySlug } from "@/lib/pathway-utils";
 import Link from "next/link";
 import { ArrowLeft, Zap, Leaf, Sprout, ImageIcon } from "lucide-react";
-
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
-  const result = findPathwayBySlug(oneEarthFramework, params.slug);
-
-  if (!result) {
-    return {
-      title: "Pathway Not Found",
-    };
-  }
-
-  const { pathway, pillar, subPillar } = result;
-
-  return {
-    title: `${pathway.name} | OneEarth Solutions Framework`,
-    description: pathway.description || pathway.summary,
-  };
-}
+import { useQuery } from "@tanstack/react-query";
+import {
+  useHypercerts,
+  useListHypercerts,
+  calculateVaultLevel,
+} from "@workspace/sdk";
+import { PathwayProjectsSection } from "@/components/pathway/projects-section";
+import { Address } from "viem";
 
 const pillarIcons = {
   "energy-transition": Zap,
@@ -36,9 +24,10 @@ const pillarIcons = {
 export default function PathwayDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const result = findPathwayBySlug(oneEarthFramework, params.slug);
+  const { slug } = use(params);
+  const result = findPathwayBySlug(oneEarthFramework, slug);
 
   if (!result) {
     notFound();
@@ -47,6 +36,31 @@ export default function PathwayDetailPage({
   const { pathway, pillar, subPillar } = result;
   const imageUrl = pathwayImages[pathway.name];
   const Icon = pillarIcons[pillar.id as keyof typeof pillarIcons];
+
+  // Find pathway vault
+  const { sdk } = useHypercerts();
+  const { data: allVaults } = useListHypercerts({});
+
+  const { data: pathwayVaultId } = useQuery({
+    queryKey: ["pathway-vault", slug],
+    queryFn: async () => {
+      if (!allVaults?.items) return null;
+
+      // Find vault with matching title (pathway name) at level 2
+      const pathwayVault = allVaults.items.find((vault) => {
+        const parentVault = vault.parent
+          ? allVaults.items.find(
+              (v) => v.id.toLowerCase() === vault.parent?.toLowerCase()
+            )
+          : null;
+        const level = calculateVaultLevel(vault, parentVault);
+        return level === 2 && vault.metadata?.title === pathway.name;
+      });
+
+      return pathwayVault ? (pathwayVault.id as Address) : null;
+    },
+    enabled: Boolean(allVaults?.items),
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -109,9 +123,10 @@ export default function PathwayDetailPage({
                   </h2>
                   <div className="flex flex-wrap gap-2">
                     {pathway.relatedThemes.map((theme) => {
-                      const themeObj = oneEarthFramework.intersectionalThemes.find(
-                        (t) => t.name === theme
-                      );
+                      const themeObj =
+                        oneEarthFramework.intersectionalThemes.find(
+                          (t) => t.name === theme
+                        );
                       return (
                         <div
                           key={theme}
@@ -160,6 +175,11 @@ export default function PathwayDetailPage({
             </div>
           )}
 
+          {/* Projects Section */}
+          <div className="mt-12 pt-8 border-t border-border">
+            <PathwayProjectsSection pathwayVaultId={pathwayVaultId || null} />
+          </div>
+
           {/* Related Pathways */}
           <div className="mt-12 pt-8 border-t border-border">
             <h2 className="text-xl font-semibold mb-4">
@@ -171,8 +191,7 @@ export default function PathwayDetailPage({
                 .slice(0, 4)
                 .map((relatedPathway) => {
                   const relatedSlug = generatePathwaySlug(relatedPathway.name);
-                  const relatedImageUrl =
-                    pathwayImages[relatedPathway.name];
+                  const relatedImageUrl = pathwayImages[relatedPathway.name];
                   return (
                     <Link
                       key={relatedPathway.id}
@@ -201,4 +220,3 @@ export default function PathwayDetailPage({
     </div>
   );
 }
-

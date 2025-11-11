@@ -21,30 +21,30 @@ pnpm install
 ## Usage
 
 ```typescript
-import { oneEarthFramework } from "@workspace/solutions";
+import { oneEarthFramework } from "@workspace/oneearth";
 
 // Access pillars
-oneEarthFramework.pillars.forEach(pillar => {
+oneEarthFramework.pillars.forEach((pillar) => {
   console.log(pillar.name);
-  
+
   // Access subPillars
-  pillar.subPillars.forEach(subPillar => {
+  pillar.subPillars.forEach((subPillar) => {
     console.log(subPillar.name);
-    
+
     // Access pathways
-    subPillar.pathways.forEach(pathway => {
+    subPillar.pathways.forEach((pathway) => {
       console.log(pathway.name);
     });
   });
 });
 
 // Access intersectional themes
-oneEarthFramework.intersectionalThemes.forEach(theme => {
+oneEarthFramework.intersectionalThemes.forEach((theme) => {
   console.log(theme.name);
 });
 
 // Access levers of change
-oneEarthFramework.leversOfChange.forEach(lever => {
+oneEarthFramework.leversOfChange.forEach((lever) => {
   console.log(lever.name);
 });
 ```
@@ -56,4 +56,3 @@ bun run build
 ```
 
 This will compile the TypeScript source and generate ESM and CJS builds in the `dist` directory.
-

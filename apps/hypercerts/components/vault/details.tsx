@@ -28,19 +28,20 @@ import { PathwaySelector } from "../pathway-selector";
 import { oneEarthFramework } from "@/lib/pathway-data";
 import { findPathwayBySlug } from "@/lib/pathway-utils";
 import { toast } from "sonner";
+import { ContributorsTreemap } from "./contributors-treemap";
 
 export function VaultDetails({ id }: { id: Address }) {
   const queryClient = useQueryClient();
   const { address } = useAccount();
   const { sdk } = useHypercerts();
-  const { data: vault } = useQuery({
+  const { data: vault, error: vaultError } = useQuery({
     queryKey: ["vault", id],
     queryFn: () => sdk?.vault.query({ where: { id }, limit: 1 }) ?? null,
     select: (data) => data?.items[0],
     refetchInterval: 1000,
   });
 
-  console.log("vault", id, sdk);
+  console.log("vault", id, sdk, vaultError);
   const { data: balance, error } = useQuery({
     queryKey: ["vault", id, "balance"],
     queryFn: () => sdk?.vault.balance(id) ?? null,
@@ -137,7 +138,7 @@ export function VaultDetails({ id }: { id: Address }) {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Vaults
+            Back to Projects
           </Link>
           <div className="mb-4">
             <h1 className="text-3xl md:text-4xl font-semibold mt-1">
@@ -216,15 +217,15 @@ export function VaultDetails({ id }: { id: Address }) {
         <div className="grid gap-6 md:grid-cols-2 mb-8">
           <Card className="border border-border">
             <CardHeader>
-              <CardTitle>Vault Overview</CardTitle>
+              <CardTitle>Funding Overview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-border">
+              {/* <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-sm text-muted-foreground">Level</span>
                 <span className="px-2 py-1 bg-foreground/5 text-foreground rounded-full text-xs font-medium">
                   {vaultLevelLabel}
                 </span>
-              </div>
+              </div> */}
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-sm text-muted-foreground">
                   Total Assets
@@ -256,7 +257,7 @@ export function VaultDetails({ id }: { id: Address }) {
 
           <Card className="border border-border">
             <CardHeader>
-              <CardTitle>Creator Position</CardTitle>
+              <CardTitle>Creator Shares</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-border">
@@ -269,6 +270,11 @@ export function VaultDetails({ id }: { id: Address }) {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Contributors Treemap */}
+        <div className="mb-8">
+          <ContributorsTreemap id={id} />
         </div>
 
         {/* Hierarchy Section */}
@@ -334,10 +340,8 @@ export function VaultDetails({ id }: { id: Address }) {
         {address && (
           <Card className="border border-border">
             <CardHeader>
-              <CardTitle>Manage Position</CardTitle>
-              <CardDescription>
-                Deposit, withdraw, or fund this vault
-              </CardDescription>
+              <CardTitle>Fund Project</CardTitle>
+              <CardDescription>Deposit or fund this project</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
@@ -363,7 +367,7 @@ export function VaultDetails({ id }: { id: Address }) {
                     Deposit
                   </Button>
                 </AllowanceCheck>
-                <Button
+                {/* <Button
                   onClick={() => {
                     withdraw.mutate(amountInWei);
                     setAmount(null);
@@ -372,7 +376,7 @@ export function VaultDetails({ id }: { id: Address }) {
                   variant="outline"
                 >
                   Withdraw
-                </Button>
+                </Button> */}
                 <AllowanceCheck
                   tokenAddress={vault?.token?.address!}
                   amount={amountInWei}

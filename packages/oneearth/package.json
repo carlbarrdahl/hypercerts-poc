@@ -1,6 +1,6 @@
 {
-  "name": "@workspace/solutions",
-  "description": "One Earth Solutions Framework data",
+  "name": "@workspace/oneearth",
+  "description": "One Earth data",
   "version": "0.1.0",
   "type": "module",
   "files": [
@@ -24,6 +24,7 @@
   "scripts": {
     "build": "bunup",
     "dev": "bunup --watch",
+    "generate:bioregions": "bun scripts/generate-bioregions.ts",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format .",

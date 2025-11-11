@@ -4,12 +4,15 @@ import { privateKeyToAccount } from "viem/accounts";
 import { zeroAddress } from "viem";
 // @ts-ignore - Workspace package, resolved at runtime
 import { HypercertsSDK } from "../../sdk/src/index.js";
-import { oneEarthFramework } from "@workspace/solutions";
+import { oneEarthFramework, oneEarthBioregions } from "../../oneearth";
 
 /**
- * Seed vaults for all pillars, subPillars, and pathways from the One Earth Solutions Framework
+ * Seed vaults for all pillars, subPillars, pathways from the One Earth Solutions Framework,
+ * and bioregions from the One Earth Bioregions dataset.
  *
  * This script creates vaults using the SDK, which handles IPFS metadata uploads automatically.
+ * - Solutions (pillars, subPillars, pathways) are created with type: "solution"
+ * - Bioregions are created with type: "region"
  *
  * Usage:
  *   bun run scripts/seed-vaults.ts
@@ -49,6 +52,7 @@ async function main() {
   const pillarVaults: Record<string, string> = {};
   const subPillarVaults: Record<string, string> = {};
   const pathwayVaults: Record<string, string> = {};
+  const bioregionVaults: Record<string, string> = {};
 
   console.log("\n🌱 Starting vault seeding...\n");
 
@@ -66,6 +70,7 @@ async function main() {
         metadata: {
           title: pillar.name,
           description: pillar.description,
+          type: "solution",
         },
       });
 
@@ -88,6 +93,7 @@ async function main() {
             metadata: {
               title: subPillar.name,
               description: subPillar.description,
+              type: "solution",
             },
           });
 
@@ -112,6 +118,7 @@ async function main() {
                   title: pathway.name,
                   description: pathway.summary || pathway.description || "",
                   image: pathway.image,
+                  type: "solution",
                 },
               });
 
@@ -140,13 +147,53 @@ async function main() {
     }
   }
 
+  // Create bioregion vaults (root level, no parent, type = "region")
+  console.log("\n🌍 Starting bioregion vault seeding...\n");
+  for (const bioregion of oneEarthBioregions.bioregions) {
+    if (!bioregion._enabled) {
+      console.log(
+        `  Skipping disabled bioregion: ${bioregion.name} (${bioregion.id})`
+      );
+      continue;
+    }
+
+    console.log(
+      `Creating bioregion vault: ${bioregion.name} (${bioregion.id})`
+    );
+
+    try {
+      const vaultAddress = await sdk.vault.create({
+        owner: account.address,
+        parent: zeroAddress,
+        asset: tokenAddress,
+        percent: 0n, // No upstream for root level
+        shares: 0n,
+        metadata: {
+          title: bioregion.name,
+          description: bioregion.description || "",
+          image: bioregion.image,
+          type: "region",
+        },
+      });
+
+      bioregionVaults[bioregion.id] = vaultAddress;
+      console.log(`  ✅ Created: ${vaultAddress}`);
+    } catch (error) {
+      console.error(
+        `  ❌ Failed to create bioregion vault ${bioregion.id}:`,
+        error
+      );
+    }
+  }
+
   // Summary
   console.log("\n📊 Seeding Summary:");
   console.log(`  Pillars: ${Object.keys(pillarVaults).length}`);
   console.log(`  SubPillars: ${Object.keys(subPillarVaults).length}`);
   console.log(`  Pathways: ${Object.keys(pathwayVaults).length}`);
+  console.log(`  Bioregions: ${Object.keys(bioregionVaults).length}`);
   console.log(
-    `  Total vaults: ${Object.keys(pillarVaults).length + Object.keys(subPillarVaults).length + Object.keys(pathwayVaults).length}`
+    `  Total vaults: ${Object.keys(pillarVaults).length + Object.keys(subPillarVaults).length + Object.keys(pathwayVaults).length + Object.keys(bioregionVaults).length}`
   );
 
   // Optionally save vault addresses to a file
@@ -154,6 +201,7 @@ async function main() {
     pillars: pillarVaults,
     subPillars: subPillarVaults,
     pathways: pathwayVaults,
+    bioregions: bioregionVaults,
   };
 
   console.log("\n✅ Vault seeding completed!");

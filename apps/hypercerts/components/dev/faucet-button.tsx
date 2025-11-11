@@ -15,6 +15,7 @@ import { waitForTransactionReceipt } from "viem/actions";
 
 export function FaucetButton() {
   const { address } = useAccount();
+
   const faucet = useFaucet(address);
   const { data: { value = BigInt(0) } = {} } = useBalance({ address });
 

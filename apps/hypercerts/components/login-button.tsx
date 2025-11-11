@@ -15,9 +15,11 @@ import { Address } from "viem";
 import { usePrivy } from "@privy-io/react-auth";
 import { EnsName } from "./ens";
 
-export function LoginButton() {
+export function LoginButtonPrivy() {
   const { ready, authenticated, logout, login, user } = usePrivy();
-
+  console.log("ready", ready);
+  console.log("authenticated", authenticated);
+  console.log("user", user);
   if (!ready) return <Button variant="outline" disabled isLoading />;
   if (authenticated) {
     return (
@@ -38,7 +40,7 @@ export function LoginButton() {
     </Button>
   );
 }
-export function LoginButtonLocal() {
+export function LoginButton() {
   const account = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();

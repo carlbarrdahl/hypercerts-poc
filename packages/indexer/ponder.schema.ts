@@ -6,6 +6,7 @@ type Metadata = {
   title: string;
   description?: string;
   image?: string;
+  type?: string; // "solution" or "region"
 };
 
 type Token = {
@@ -20,6 +21,7 @@ export const vault = onchainTable("vault", (t) => ({
   parent: t.hex(),
   percent: t.bigint(),
   metadata: t.json().$type<Metadata>(),
+  type: t.text(), // Extracted from metadata for easier querying
   token: t.json().$type<Token>(),
   createdAt: t.timestamp(),
   updatedAt: t.timestamp(),

@@ -26,6 +26,7 @@ const vaultsQuery = gql`
 				percent
 				token
 				metadata
+				type
 				createdAt
 				updatedAt
 			}
@@ -163,6 +164,7 @@ export type Vault = {
 	parent?: Address;
 	percent: string;
 	metadata: Record<string, any>;
+	type?: string | null; // "solution" or "region"
 	token: Token;
 	createdAt: string;
 	updatedAt: string;
@@ -232,6 +234,9 @@ export type VaultFilter = {
 	parent_not_in?: string[];
 	percent_gte?: string;
 	percent_lte?: string;
+	type?: string;
+	type_in?: string[];
+	type_not_in?: string[];
 };
 
 export type AttestationFilter = {
@@ -259,6 +264,7 @@ export type VaultOrderBy =
 	| 'parent'
 	| 'percent'
 	| 'metadata'
+	| 'type'
 	| 'createdAt'
 	| 'updatedAt';
 export type ContributorOrderBy =
@@ -363,7 +369,16 @@ export function createIndexer(chain: keyof typeof config) {
 				return client
 					.query(vaultsQuery, variables)
 					.toPromise()
-					.then((r) => mapTimestamps(r.data?.vaults ?? []) as VaultPage);
+					.then((r) => {
+						console.log('r', r);
+
+						return r;
+					})
+					.then((r) => mapTimestamps(r.data?.vaults ?? []) as VaultPage)
+					.catch((e) => {
+						console.error('error', e);
+						return null;
+					});
 			},
 		},
 		contributor: {

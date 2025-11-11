@@ -21,7 +21,7 @@ export function MintTokens() {
   const queryClient = useQueryClient();
   const tokenAddress = ERC20Mock?.address as Address;
   const { data: balance, queryKey } = useToken(tokenAddress, address);
-
+  console.log("address", address);
   return (
     <Alert className="">
       <AlertTitle>Mint test tokens</AlertTitle>

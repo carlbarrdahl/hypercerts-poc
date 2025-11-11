@@ -78,3 +78,4 @@ export const pathwayImages: Record<string, string> = {
     "https://images.takeshape.io/86ce9525-f5f2-4e97-81ba-54e8ce933da7/dev/dbd963d3-1628-4d18-a878-586b95441be9/donate%20box%20dreamstime_109594371.jpg",
 };
 
+

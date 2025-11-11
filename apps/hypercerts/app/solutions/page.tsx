@@ -1,4 +1,4 @@
-import { oneEarthFramework } from "@workspace/solutions";
+import { oneEarthFramework } from "@workspace/oneearth";
 import { pathwayImages } from "@/data/pathway-images";
 import { generatePathwaySlug } from "@/lib/pathway-utils";
 import {
@@ -280,7 +280,8 @@ export default function SolutionsPage() {
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold">Explore Vaults</h2>
             <p className="text-muted-foreground">
-              See how these solutions are being implemented through impact vaults
+              See how these solutions are being implemented through impact
+              vaults
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Link href="/" className="group">
@@ -296,4 +297,3 @@ export default function SolutionsPage() {
     </div>
   );
 }
-

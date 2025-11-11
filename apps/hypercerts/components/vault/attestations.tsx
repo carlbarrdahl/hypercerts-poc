@@ -637,15 +637,6 @@ function AttestationDialog({
           {isMilestone && address && (
             <>
               <Button
-                variant="outline"
-                onClick={() => handleVerify(false)}
-                disabled={isVerifying}
-                className="flex-1 sm:flex-initial"
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                Reject
-              </Button>
-              <Button
                 onClick={() => handleVerify(true)}
                 disabled={isVerifying}
                 isLoading={isVerifying}

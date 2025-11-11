@@ -9,13 +9,14 @@ import { HypercertsProvider } from "@workspace/sdk";
 import { hardhat } from "viem/chains";
 import { baseSepolia } from "@account-kit/infra";
 
-const defaultChain = baseSepolia;
+const defaultChain = hardhat;
 const config = createConfig({
   chains: [defaultChain],
   connectors: [burner()],
   transports: {
     [defaultChain.id]: http(),
   },
+  autoConnect: false,
 });
 
 export function Providers({ children }: PropsWithChildren) {
@@ -30,7 +31,9 @@ export function Providers({ children }: PropsWithChildren) {
 }
 
 function Hypercerts({ children }: PropsWithChildren) {
-  const { data } = useWalletClient();
-  if (!data) return <div>Loading...</div>;
-  return <HypercertsProvider client={data}>{children}</HypercertsProvider>;
+  const { data: client } = useWalletClient();
+
+  if (!client) return <>{children}</>;
+
+  return <HypercertsProvider client={client}>{children}</HypercertsProvider>;
 }

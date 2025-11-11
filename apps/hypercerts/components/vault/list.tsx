@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useMemo } from "react";
 import {
   useListHypercerts,
   getVaultLevelLabel,
@@ -11,23 +12,176 @@ import { Grid } from "../grid";
 import { ImageIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Amount } from "../token-amount";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
+import { oneEarthFramework } from "@/lib/pathway-data";
+import { generatePathwaySlug } from "@/lib/pathway-utils";
+
+type VaultType = "all" | "projects" | "pathways" | "pillars";
+type VaultStatus = "all" | "seeking" | "funded" | "progress";
+type SortOption = "recent" | "funded" | "verified";
 
 export function VaultsList() {
   const { data, ...rest } = useListHypercerts({});
+  const [typeFilter, setTypeFilter] = useState<VaultType>("all");
+  const [pathwayFilter, setPathwayFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<VaultStatus>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("recent");
 
-  console.log("data", data, rest);
+  // Get all pathway slugs for filter dropdown
+  const pathwayOptions = useMemo(() => {
+    return oneEarthFramework.pillars.flatMap((pillar) =>
+      pillar.subPillars.flatMap((subPillar) =>
+        subPillar.pathways.map((pathway) => ({
+          slug: generatePathwaySlug(pathway.name),
+          name: pathway.name,
+        }))
+      )
+    );
+  }, []);
+
+  // Filter and sort vaults
+  const filteredVaults = useMemo(() => {
+    if (!data?.items) return [];
+
+    let filtered = [...data.items];
+
+    // Filter by type
+    if (typeFilter === "projects") {
+      filtered = filtered.filter((vault) => {
+        const parentVault = vault.parent
+          ? data.items.find((v) => v.id === vault.parent)
+          : null;
+        const level = calculateVaultLevel(vault, parentVault);
+        return (
+          level > 2 ||
+          vault.metadata?.vaultType === "project" ||
+          vault.metadata?.pathwaySlug
+        );
+      });
+    } else if (typeFilter === "pathways") {
+      filtered = filtered.filter((vault) => {
+        const parentVault = vault.parent
+          ? data.items.find((v) => v.id === vault.parent)
+          : null;
+        const level = calculateVaultLevel(vault, parentVault);
+        return level === 2;
+      });
+    } else if (typeFilter === "pillars") {
+      filtered = filtered.filter((vault) => {
+        const parentVault = vault.parent
+          ? data.items.find((v) => v.id === vault.parent)
+          : null;
+        const level = calculateVaultLevel(vault, parentVault);
+        return level === 0;
+      });
+    }
+
+    // Filter by pathway
+    if (pathwayFilter !== "all") {
+      filtered = filtered.filter(
+        (vault) => vault.metadata?.pathwaySlug === pathwayFilter
+      );
+    }
+
+    // Note: Status and sort filters would require balance data
+    // For now, we'll implement basic sorting by level/type
+
+    // Sort
+    if (sortBy === "recent") {
+      filtered.sort((a, b) => {
+        const dateA = a.metadata?.createdAt
+          ? new Date(a.metadata.createdAt).getTime()
+          : 0;
+        const dateB = b.metadata?.createdAt
+          ? new Date(b.metadata.createdAt).getTime()
+          : 0;
+        return dateB - dateA;
+      });
+    }
+
+    return filtered;
+  }, [data?.items, typeFilter, pathwayFilter, statusFilter, sortBy]);
+
   return (
     <div>
       <div className="mb-12">
-        <h2 className="text-3xl md:text-4xl tracking-tight mb-4">All Vaults</h2>
-        <p className="text-muted-foreground max-w-2xl leading-relaxed">
-          Explore all impact vaults and hypercerts created on the platform.
+        <h2 className="text-3xl md:text-4xl tracking-tight mb-4">
+          {typeFilter === "projects"
+            ? "Projects"
+            : typeFilter === "pathways"
+              ? "Pathways"
+              : typeFilter === "pillars"
+                ? "Pillars"
+                : "All Vaults"}
+        </h2>
+        <p className="text-muted-foreground max-w-2xl leading-relaxed mb-6">
+          {typeFilter === "projects"
+            ? "Explore projects applying to solution pathways"
+            : "Explore all impact vaults and hypercerts created on the platform."}
         </p>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 mb-6">
+          <Select
+            value={typeFilter}
+            onValueChange={(v: VaultType) => setTypeFilter(v)}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="projects">Projects</SelectItem>
+              <SelectItem value="pathways">Pathways</SelectItem>
+              <SelectItem value="pillars">Pillars</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {typeFilter === "projects" && (
+            <Select
+              value={pathwayFilter}
+              onValueChange={(v) => setPathwayFilter(v)}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Pathway" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Pathways</SelectItem>
+                {pathwayOptions.map((pathway) => (
+                  <SelectItem key={pathway.slug} value={pathway.slug}>
+                    {pathway.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Select
+            value={sortBy}
+            onValueChange={(v: SortOption) => setSortBy(v)}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recent">Most Recent</SelectItem>
+              <SelectItem value="funded">Most Funded</SelectItem>
+              <SelectItem value="verified">Most Verified</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
       <Grid
         {...rest}
         columns={[1, 2, 3]}
-        data={data?.items}
+        data={filteredVaults}
         renderItem={(item) => (
           <Vault
             key={item.id}
@@ -106,7 +260,9 @@ export function Vault({
         </div>
         <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
           <span className="px-2 py-1 bg-foreground/5 text-foreground rounded-full text-xs">
-            {levelLabel}
+            {level > 2 || metadata?.vaultType === "project"
+              ? "Project"
+              : levelLabel}
           </span>
           {metadata?.pathwaySlug && (
             <span className="px-2 py-1 bg-foreground/5 text-foreground rounded-full text-xs">

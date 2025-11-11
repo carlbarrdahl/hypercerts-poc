@@ -8,12 +8,15 @@ export function Header() {
       <Link href="/">
         <h1 className="text-sm font-bold">Hypercerts</h1>
       </Link>
-      <div className="w-full flex items-center justify-center">
-        <Link href="/account">
-          <Button variant="link">Account</Button>
+      <div className="w-full flex items-center justify-center gap-1">
+        <Link href="/solutions">
+          <Button variant="link">Solutions</Button>
+        </Link>
+        <Link href="/regions">
+          <Button variant="link">Regions</Button>
         </Link>
         <Link href="/certs/create">
-          <Button variant="link">Create</Button>
+          <Button variant="link">Create Project</Button>
         </Link>
       </div>
       <LoginButton />

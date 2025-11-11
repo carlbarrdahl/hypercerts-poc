@@ -8,7 +8,7 @@ import { Toaster } from "@workspace/ui/components/sonner";
 import { HypercertsProvider } from "@workspace/sdk";
 import { PrivyProvider } from "@privy-io/react-auth";
 // import { config } from "@/config";
-import { http, useWalletClient } from "wagmi";
+import { http, useChainId, useWalletClient } from "wagmi";
 import { createConfig } from "@privy-io/wagmi";
 import { baseSepolia, hardhat } from "viem/chains";
 import { WagmiProvider } from "@privy-io/wagmi";
@@ -93,6 +93,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 function Hypercerts({ children }: PropsWithChildren) {
   const { data: client } = useWalletClient();
+  const chain = useChainId();
+  const chainId = chain;
+  console.log("chainId", chainId);
+  // if (!chainId) return <>{children}</>;
+  // if (chainId !== hardhat.id && chainId !== baseSepolia.id) return <>{children}</>;
+
   if (!client) return <>{children}</>;
+
   return <HypercertsProvider client={client}>{children}</HypercertsProvider>;
 }
