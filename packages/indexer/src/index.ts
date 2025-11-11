@@ -55,6 +55,8 @@ ponder.on("HyperVault:Deposit", async ({ event, context }) => {
   console.log("Deposit event:", event.args);
   const asset = await fetchAsset(id, context.client);
   const [decimals, symbol] = await fetchToken(asset, context.client);
+  const token = { address: asset, symbol, decimals };
+
   await context.db.insert(deposit).values({
     id: event.id,
     vault: id,
@@ -62,25 +64,26 @@ ponder.on("HyperVault:Deposit", async ({ event, context }) => {
     sender,
     assets,
     shares,
-    token: { address: asset, symbol, decimals },
+    token,
     createdAt: toTimestamp(event.block.timestamp),
   });
+
+  // Track depositors as funders (they provided assets)
   await context.db
-    .insert(contributor)
+    .insert(funder)
     .values({
       id: event.id,
       vault: id,
       address: sender,
       assets,
-      shares,
-      token: { address: asset, symbol, decimals },
+      token,
       createdAt: toTimestamp(event.block.timestamp),
     })
     .onConflictDoUpdate((row) => ({
       address: sender,
       vault: id,
       assets: (row.assets ?? 0n) + BigInt(assets),
-      shares: (row.shares ?? 0n) + BigInt(shares),
+      updatedAt: toTimestamp(event.block.timestamp),
     }));
 });
 
@@ -92,6 +95,8 @@ ponder.on("HyperVault:Withdraw", async ({ event, context }) => {
 
   const asset = await fetchAsset(id, context.client);
   const [decimals, symbol] = await fetchToken(asset, context.client);
+  const token = { address: asset, symbol, decimals };
+
   await context.db.insert(withdraw).values({
     id: event.id,
     vault: id,
@@ -99,24 +104,25 @@ ponder.on("HyperVault:Withdraw", async ({ event, context }) => {
     sender,
     assets,
     shares,
-    token: { address: asset, symbol, decimals },
+    token,
     createdAt: toTimestamp(event.block.timestamp),
   });
+
+  // Update contributor shares when they withdraw
   await context.db
     .insert(contributor)
     .values({
       id: event.id,
       vault: id,
       address: sender,
-      assets,
+      assets: 0n,
       shares,
-      token: { address: asset, symbol, decimals },
+      token,
       createdAt: toTimestamp(event.block.timestamp),
     })
     .onConflictDoUpdate((row) => ({
       address: sender,
       vault: id,
-      assets: (row.assets ?? 0n) - BigInt(assets),
       shares: (row.shares ?? 0n) - BigInt(shares),
       updatedAt: toTimestamp(event.block.timestamp),
     }));
@@ -162,6 +168,43 @@ ponder.on("HyperVault:Funded", async ({ event, context }) => {
       assets: (row.assets ?? 0n) + BigInt(assets),
       updatedAt: toTimestamp(event.block.timestamp),
     }));
+});
+
+// Note: The mint function now uses the standard ERC20 Transfer event (from: 0x0, to: recipient)
+// We'll handle minting through the Transfer event with 'from' being zero address
+
+ponder.on("HyperVault:Transfer", async ({ event, context }) => {
+  const {
+    log: { address: id },
+    args: { from, to, value },
+  } = event;
+
+  // Only track mints (from = zero address) as contributors
+  if (from === zeroAddress && to !== zeroAddress) {
+    console.log("Mint event (Transfer from zero):", event.args);
+    const asset = await fetchAsset(id, context.client);
+    const [decimals, symbol] = await fetchToken(asset, context.client);
+    const token = { address: asset, symbol, decimals };
+
+    // Track minted shares recipients as contributors (they received shares without depositing)
+    await context.db
+      .insert(contributor)
+      .values({
+        id: event.id,
+        vault: id,
+        address: to,
+        assets: 0n, // No assets deposited
+        shares: value,
+        token,
+        createdAt: toTimestamp(event.block.timestamp),
+      })
+      .onConflictDoUpdate((row) => ({
+        address: to,
+        vault: id,
+        shares: (row.shares ?? 0n) + BigInt(value),
+        updatedAt: toTimestamp(event.block.timestamp),
+      }));
+  }
 });
 
 async function fetchAsset(address: Address, client: Context["client"]) {

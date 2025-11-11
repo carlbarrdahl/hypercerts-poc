@@ -49,31 +49,35 @@ const tileMethods: Record<string, any> = {
   treemapSliceDice,
 };
 
-const defaultMargin = { top: 10, left: 10, right: 10, bottom: 10 };
+const defaultMargin = { top: 2, left: 2, right: 2, bottom: 2 };
 
 interface ContributorsTreemapProps {
   id: Address;
 }
 
-interface TreemapVisualizationProps {
+interface SingleTreemapProps {
   width: number;
   height: number;
   nodes: TreemapNode[];
   tileMethod: string;
+  title: string;
+  color: string;
   margin?: { top: number; right: number; bottom: number; left: number };
 }
 
-function TreemapVisualization({
+function SingleTreemap({
   width,
   height,
   nodes,
   tileMethod,
+  title,
+  color,
   margin = defaultMargin,
-}: TreemapVisualizationProps) {
-  if (nodes.length <= 3) {
+}: SingleTreemapProps) {
+  if (nodes.length === 0) {
     return (
       <div className="text-sm text-muted-foreground text-center py-12">
-        No contributors or funders data available yet.
+        No {title.toLowerCase()} yet
       </div>
     );
   }
@@ -87,21 +91,44 @@ function TreemapVisualization({
 
   const colorScale = scaleLinear<string>({
     domain: [0, maxValue],
-    range: [color2, color2],
+    range: [color, color],
   });
 
   const xMax = width - margin.left - margin.right;
-  const yMax = height - margin.top - margin.bottom;
+  const yMax = height - margin.top - margin.bottom - 50; // Extra space for title
   const root = hierarchy(data).sort((a, b) => (b.value || 0) - (a.value || 0));
 
   const formatAddress = (addr: string) =>
     `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
   return (
-    <svg width={width} height={height} className="rounded-lg">
+    <svg width={width} height={height} className="">
       <rect width={width} height={height} rx={8} fill={background} />
+
+      {/* Title */}
+      <text
+        x={width / 2}
+        y={25}
+        textAnchor="middle"
+        fill="white"
+        fontSize={16}
+        fontWeight="bold"
+      >
+        {title}
+      </text>
+      <text
+        x={width / 2}
+        y={43}
+        textAnchor="middle"
+        fill="white"
+        fontSize={12}
+        opacity={0.7}
+      >
+        {nodes.length} {nodes.length === 1 ? "person" : "people"}
+      </text>
+
       <Treemap<typeof data>
-        top={margin.top}
+        top={margin.top + 50}
         root={root}
         size={[xMax, yMax]}
         tile={tileMethods[tileMethod]}
@@ -117,83 +144,52 @@ function TreemapVisualization({
                 const nodeHeight = node.y1 - node.y0;
                 const nodeData = node.data.data as TreemapNode;
 
+                // Only render leaf nodes (skip root)
+                if (node.depth === 0) return null;
+
                 return (
                   <Group
                     key={`node-${i}`}
-                    top={node.y0 + margin.top}
+                    top={node.y0 + margin.top + 50}
                     left={node.x0 + margin.left}
                   >
-                    {/* Render category borders (depositors/funders groups) */}
-                    {node.depth === 1 && (
-                      <rect
-                        width={nodeWidth}
-                        height={nodeHeight}
-                        stroke={background}
-                        strokeWidth={4}
-                        fill="transparent"
-                      />
-                    )}
-                    {/* Render actual contributor/funder rectangles */}
-                    {node.depth === 2 && (
+                    <rect
+                      width={nodeWidth}
+                      height={nodeHeight}
+                      stroke={background}
+                      strokeWidth={2}
+                      fill={colorScale(node.value || 0)}
+                      className="transition-opacity hover:opacity-80 cursor-pointer"
+                    >
+                      <title>
+                        {nodeData.address
+                          ? `${formatAddress(nodeData.address)}\nValue: ${formatUnits(BigInt(node.value ?? 0), 18)} USDC`
+                          : ""}
+                      </title>
+                    </rect>
+                    {nodeWidth > 60 && nodeHeight > 30 && nodeData.address && (
                       <>
-                        <rect
-                          width={nodeWidth}
-                          height={nodeHeight}
-                          stroke={background}
-                          strokeWidth={2}
-                          fill={colorScale(node.value || 0)}
-                          className="transition-opacity hover:opacity-80 cursor-pointer"
+                        <text
+                          x={nodeWidth / 2}
+                          y={nodeHeight / 2 - 4}
+                          textAnchor="middle"
+                          fill="white"
+                          fontSize={12}
+                          fontWeight="bold"
+                          pointerEvents="none"
                         >
-                          <title>
-                            {nodeData.address
-                              ? `${formatAddress(nodeData.address)}\n${
-                                  nodeData.type === "depositor"
-                                    ? "Depositor"
-                                    : "Funder"
-                                }\nValue: ${node.value}`
-                              : ""}
-                          </title>
-                        </rect>
-                        {nodeWidth > 60 &&
-                          nodeHeight > 30 &&
-                          nodeData.address && (
-                            <>
-                              <text
-                                x={nodeWidth / 2}
-                                y={nodeHeight / 2 - 8}
-                                textAnchor="middle"
-                                fill="white"
-                                fontSize={12}
-                                fontWeight="bold"
-                                pointerEvents="none"
-                              >
-                                {formatAddress(nodeData.address)}
-                              </text>
-                              <text
-                                x={nodeWidth / 2}
-                                y={nodeHeight / 2 + 8}
-                                textAnchor="middle"
-                                fill="white"
-                                fontSize={10}
-                                opacity={0.8}
-                                pointerEvents="none"
-                              >
-                                {nodeData.type === "depositor"
-                                  ? "Depositor"
-                                  : "Funder"}
-                              </text>
-                              <text
-                                x={nodeWidth / 2}
-                                y={nodeHeight / 2 + 24}
-                                textAnchor="middle"
-                                fill="white"
-                                fontSize={11}
-                                pointerEvents="none"
-                              >
-                                {formatUnits(node.value ?? 0, 18)} USDC
-                              </text>
-                            </>
-                          )}
+                          {formatAddress(nodeData.address)}
+                        </text>
+                        <text
+                          x={nodeWidth / 2}
+                          y={nodeHeight / 2 + 14}
+                          textAnchor="middle"
+                          fill="white"
+                          fontSize={11}
+                          pointerEvents="none"
+                        >
+                          {formatUnits(BigInt(node.value ?? 0), 18)} USDC
+                        </text>
                       </>
                     )}
                   </Group>
@@ -207,7 +203,7 @@ function TreemapVisualization({
 }
 
 export function ContributorsTreemap({ id }: ContributorsTreemapProps) {
-  const [tileMethod, setTileMethod] = useState<string>("treemapSquarify");
+  const [tileMethod, setTileMethod] = useState<string>("treemapBinary");
   const { sdk } = useHypercerts();
 
   const { data: contributorsData } = useListContributors(
@@ -234,21 +230,16 @@ export function ContributorsTreemap({ id }: ContributorsTreemapProps) {
     select: (data) => data?.items[0],
   });
 
-  // Build hierarchical data structure
-  const buildTreemapData = (): TreemapNode[] => {
-    const nodes: TreemapNode[] = [
-      { id: "root", parent: undefined },
-      { id: "depositors", parent: "root" },
-      { id: "funders", parent: "root" },
-    ];
+  // Build separate tree structures for contributors and funders
+  const buildContributorsTree = (): TreemapNode[] => {
+    const nodes: TreemapNode[] = [{ id: "root", parent: undefined }];
 
-    // Add contributors (depositors with shares)
     contributorsData?.items?.forEach((contributor, idx) => {
       const shares = Number(contributor.shares) || 0;
       if (shares > 0) {
         nodes.push({
           id: `depositor-${idx}`,
-          parent: "depositors",
+          parent: "root",
           size: shares,
           address: contributor.address,
           type: "depositor",
@@ -256,13 +247,18 @@ export function ContributorsTreemap({ id }: ContributorsTreemapProps) {
       }
     });
 
-    // Add funders (those who fund without shares)
+    return nodes;
+  };
+
+  const buildFundersTree = (): TreemapNode[] => {
+    const nodes: TreemapNode[] = [{ id: "root", parent: undefined }];
+
     fundersData?.items?.forEach((funder, idx) => {
       const assets = Number(funder.assets) || 0;
       if (assets > 0) {
         nodes.push({
           id: `funder-${idx}`,
-          parent: "funders",
+          parent: "root",
           size: assets,
           address: funder.address,
           type: "funder",
@@ -273,59 +269,61 @@ export function ContributorsTreemap({ id }: ContributorsTreemapProps) {
     return nodes;
   };
 
-  const nodes = buildTreemapData();
+  const contributorsNodes = buildContributorsTree();
+  const fundersNodes = buildFundersTree();
 
   return (
     <Card className="border border-border">
       <CardHeader>
-        <CardTitle>Contributors Treemap</CardTitle>
+        <CardTitle>Contributors & Funders</CardTitle>
         <CardDescription>
           Visual representation of all contributors and funders by contribution
           size
         </CardDescription>
-        <div className="flex items-center gap-2 mt-4">
-          <label className="text-sm text-muted-foreground">Tile method:</label>
-          <select
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => setTileMethod(e.target.value)}
-            value={tileMethod}
-            className="text-sm bg-background border border-border rounded px-2 py-1"
-          >
-            {Object.keys(tileMethods).map((tile) => (
-              <option key={tile} value={tile}>
-                {tile.replace("treemap", "")}
-              </option>
-            ))}
-          </select>
-        </div>
       </CardHeader>
       <CardContent>
-        <div className="w-full" style={{ height: "500px" }}>
-          <ParentSize>
-            {({ width, height }) => (
-              <TreemapVisualization
-                width={width}
-                height={height}
-                nodes={nodes}
-                tileMethod={tileMethod}
-              />
-            )}
-          </ParentSize>
-        </div>
-        <div className="flex items-center gap-6 mt-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded"
-              style={{ backgroundColor: color2 }}
-            />
-            <span className="text-muted-foreground">Smaller contributions</span>
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          {/* Funders Treemap */}
+          <div className="w-full" style={{ height: "400px" }}>
+            <ParentSize>
+              {({ width, height }) =>
+                fundersNodes.length > 1 ? (
+                  <SingleTreemap
+                    width={width}
+                    height={height}
+                    nodes={fundersNodes}
+                    tileMethod={tileMethod}
+                    title="FUNDERS"
+                    color={color2}
+                  />
+                ) : (
+                  <div className="text-sm text-muted-foreground text-center py-12">
+                    No funders yet
+                  </div>
+                )
+              }
+            </ParentSize>
           </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded"
-              style={{ backgroundColor: color1 }}
-            />
-            <span className="text-muted-foreground">Larger contributions</span>
+          {/* Contributors Treemap */}
+          <div className="w-full" style={{ height: "400px" }}>
+            <ParentSize>
+              {({ width, height }) =>
+                contributorsNodes.length > 1 ? (
+                  <SingleTreemap
+                    width={width}
+                    height={height}
+                    nodes={contributorsNodes}
+                    tileMethod={tileMethod}
+                    title="CONTRIBUTORS"
+                    color={color1}
+                  />
+                ) : (
+                  <div className="text-sm text-muted-foreground text-center py-12">
+                    No contributors yet
+                  </div>
+                )
+              }
+            </ParentSize>
           </div>
         </div>
       </CardContent>
