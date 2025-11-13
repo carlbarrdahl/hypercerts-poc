@@ -132,7 +132,7 @@ export function VaultDetails({ id }: { id: Address }) {
     <>
       {/* Header */}
       <div className="border-b border-border bg-muted/20">
-        <div className="max-w-4xl mx-auto px-8 py-6">
+        <div className=" px-8 py-6">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
@@ -149,7 +149,7 @@ export function VaultDetails({ id }: { id: Address }) {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-8 py-12">
+      <div className=" px-8 py-12">
         <div className="aspect-[16/9] overflow-hidden rounded-lg mb-8 bg-muted flex items-center justify-center">
           {vault?.metadata?.image ? (
             <img

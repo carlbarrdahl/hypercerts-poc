@@ -21,6 +21,7 @@ import ky from 'ky';
 
 export const AttestationInputSchema = z.object({
 	recipient: z.string(),
+	refUID: z.string().optional(),
 	data: z.object({
 		type: z.string(),
 		metadata: z.object({
@@ -90,6 +91,7 @@ export async function createAttestation(
 
 		const defaultAttestation = {
 			recipient,
+			refUID: input.refUID,
 			expirationTime: NO_EXPIRATION,
 			revocable: true,
 			data,

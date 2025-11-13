@@ -419,6 +419,9 @@ function mapTimestamps<
 		...data,
 		items: data.items.map((item) => ({
 			...item,
+			metadata: item.decodedParsed?.metadata
+				? JSON.parse(item.decodedParsed.metadata)
+				: undefined,
 			createdAt: item.createdAt ? new Date(+item.createdAt) : undefined,
 			updatedAt: item.updatedAt ? new Date(+item.updatedAt) : undefined,
 		})),

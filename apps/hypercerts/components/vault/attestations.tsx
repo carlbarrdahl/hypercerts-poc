@@ -53,7 +53,14 @@ import { EnsName } from "../ens";
 import { truncate } from "@/lib/truncate";
 import { timeAgo } from "@/lib/format";
 import { useAccount } from "wagmi";
-import { CheckCircle2, XCircle, Plus } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  Plus,
+  Award,
+  ShieldCheck,
+  Eye,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -104,7 +111,7 @@ export function Attestations({ id }: { id: Address }) {
       refetchInterval: 1000,
     }
   );
-
+  console.log(1212312, data);
   return (
     <Card>
       <CardHeader>
@@ -125,42 +132,99 @@ export function Attestations({ id }: { id: Address }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Attester</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data?.items?.map((item, i) => {
                 const parsed = item.decodedParsed as any;
                 const isMilestone = parsed?.type === "milestone";
+                const isVerification = parsed?.type === "verification";
+
+                // Parse metadata
+                let metadata: any = {};
+                if (parsed?.metadata) {
+                  try {
+                    metadata =
+                      typeof parsed.metadata === "string"
+                        ? JSON.parse(parsed.metadata)
+                        : parsed.metadata;
+                  } catch (e) {
+                    metadata = {};
+                  }
+                }
+
                 return (
                   <TableRow
                     key={i}
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => setSelectedAttestation(item)}
                   >
-                    <TableCell className="font-mono text-sm">
-                      {truncate(item.id)}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      <EnsName address={item.attester} />
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {timeAgo(item.createdAt)}
-                    </TableCell>
-                    <TableCell className="max-w-xs">
+                    <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium">
+                        {isMilestone ? (
+                          <Award className="w-4 h-4 text-blue-500" />
+                        ) : isVerification ? (
+                          <ShieldCheck className="w-4 h-4 text-green-500" />
+                        ) : null}
+                        <span className="text-sm font-medium capitalize">
                           {parsed?.type || "Unknown"}
                         </span>
-                        {isMilestone && (
-                          <span className="text-xs text-muted-foreground">
-                            {parsed?.metadata?.title || "Milestone"}
-                          </span>
-                        )}
                       </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {metadata?.title || "—"}
+                    </TableCell>
+                    <TableCell className="max-w-xs">
+                      <p className="text-sm text-muted-foreground truncate">
+                        {metadata?.description || "—"}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      {isVerification && (
+                        <div className="flex items-center gap-1.5">
+                          {metadata?.verified ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                              <span className="text-sm text-green-600 font-medium">
+                                Verified
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-4 h-4 text-red-600" />
+                              <span className="text-sm text-red-600 font-medium">
+                                Rejected
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <EnsName address={item.attester} />
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {timeAgo(item.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedAttestation(item);
+                        }}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -446,6 +510,7 @@ function AttestationDialog({
 
     createAttestation(
       {
+        refUID: attestation.id,
         recipient: vaultId,
         visibility: "published",
         data: {
@@ -454,7 +519,7 @@ function AttestationDialog({
             title: verified ? "Verified Milestone" : "Rejected Milestone",
             description: `This milestone attestation has been ${
               verified ? "verified" : "rejected"
-            }. Reference: ${attestation.id}`,
+            }`,
             refAttestationId: attestation.id,
             verified,
           },
@@ -642,8 +707,8 @@ function AttestationDialog({
                 isLoading={isVerifying}
                 loadingText="Verifying..."
                 className="flex-1 sm:flex-initial"
+                icon={CheckCircle2}
               >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
                 Verify Milestone
               </Button>
             </>

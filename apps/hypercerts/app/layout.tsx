@@ -28,7 +28,7 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={` font-sans antialiased `}>
         <Providers>
-          <main className="max-w-screen-lg mx-auto min-h-svh">
+          <main className="max-w-screen-xl mx-auto min-h-svh">
             <Header />
             {children}
 

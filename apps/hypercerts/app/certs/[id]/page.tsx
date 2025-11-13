@@ -14,6 +14,7 @@ import {
   calculateVaultLevel,
 } from "@workspace/sdk";
 import { useAccount } from "wagmi";
+import { AttestationGraph } from "@/components/vault/attestation-graph";
 
 export default function CertPage({
   params,
@@ -53,7 +54,7 @@ export default function CertPage({
     <div className="min-h-screen bg-background">
       <VaultDetails id={id} />
 
-      <div className="max-w-4xl mx-auto px-8 py-12">
+      <div className=" px-8 py-12">
         {/* Show milestones timeline for projects */}
         {isProject ? (
           <>
@@ -71,6 +72,8 @@ export default function CertPage({
               <FundersList id={id} />
             </div>
             <Attestations id={id} />
+
+            <AttestationGraph id={id} />
           </>
         )}
       </div>
