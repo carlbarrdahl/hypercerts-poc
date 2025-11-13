@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useEffect } from "react";
+import React, { useCallback, useMemo, useEffect, useState } from "react";
 import { Address } from "viem";
 import {
   Background,
@@ -25,6 +25,7 @@ import {
 } from "@workspace/ui/components/card";
 import { truncate } from "@/lib/truncate";
 import { timeAgo } from "@/lib/format";
+import { AttestationDialog } from "./attestations";
 
 import "@xyflow/react/dist/style.css";
 
@@ -73,7 +74,13 @@ const getLayoutedElements = (
   return { nodes: newNodes, edges };
 };
 
-function AttestationNode({ data }: { data: any }) {
+function AttestationNode({
+  data,
+  selected,
+}: {
+  data: any;
+  selected?: boolean;
+}) {
   const parsed = data.decodedParsed as any;
   const typeColor =
     parsed?.type === "milestone"
@@ -81,9 +88,14 @@ function AttestationNode({ data }: { data: any }) {
       : parsed?.type === "verification"
         ? "bg-green-50 border-green-200"
         : "bg-gray-50 border-gray-200";
+
+  const selectedStyles = selected
+    ? "ring-4 ring-blue-400 ring-offset-2 shadow-lg scale-105"
+    : "";
+
   return (
     <div
-      className={`px-4 py-3 rounded-lg border-2 ${typeColor} shadow-sm min-w-[250px]`}
+      className={`px-4 py-3 rounded-lg border-2 ${typeColor} shadow-sm min-w-[250px] cursor-pointer hover:shadow-md transition-all ${selectedStyles}`}
     >
       <Handle type="target" position={Position.Top} />
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
@@ -105,11 +117,22 @@ const nodeTypes = {
   attestation: AttestationNode,
 };
 
-function Flow({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
+function Flow({
+  nodes,
+  edges,
+  onNodeClick,
+  selectedNodeId,
+}: {
+  nodes: Node[];
+  edges: Edge[];
+  onNodeClick: (node: Node) => void;
+  selectedNodeId: string | null;
+}) {
   const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes);
   const [flowEdges, setEdges, onEdgesChange] = useEdgesState(edges);
 
   // Update internal state when props change (new data arrives)
+  // The nodes already have the selected state from the parent
   useEffect(() => {
     setNodes(nodes);
   }, [nodes, setNodes]);
@@ -133,6 +156,7 @@ function Flow({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
+      onNodeClick={(_, node) => onNodeClick(node)}
       connectionLineType={ConnectionLineType.SmoothStep}
       nodeTypes={nodeTypes}
       fitView
@@ -145,6 +169,11 @@ function Flow({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
 }
 
 export function AttestationGraph({ id }: { id: Address }) {
+  const [selectedAttestation, setSelectedAttestation] = useState<any | null>(
+    null
+  );
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
   const { data, isPending } = useHypercertsAttestations(
     {
       orderBy: "createdAt",
@@ -158,6 +187,16 @@ export function AttestationGraph({ id }: { id: Address }) {
     }
   );
 
+  const handleNodeClick = useCallback((node: Node) => {
+    setSelectedAttestation(node.data);
+    setSelectedNodeId(node.id);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setSelectedAttestation(null);
+    setSelectedNodeId(null);
+  }, []);
+
   const { nodes, edges } = useMemo(() => {
     if (!data?.items?.length) {
       return { nodes: [], edges: [] };
@@ -166,12 +205,13 @@ export function AttestationGraph({ id }: { id: Address }) {
     // Create a map of attestations by ID for quick lookup
     const attestationMap = new Map(data.items.map((item) => [item.id, item]));
 
-    // Build nodes
+    // Build nodes with selected state
     const nodes: Node[] = data.items.map((item) => ({
       id: item.id,
       type: "attestation",
       data: item,
       position: { x: 0, y: 0 }, // Will be set by dagre
+      selected: item.id === selectedNodeId,
     }));
 
     // Build edges using refUID
@@ -192,7 +232,7 @@ export function AttestationGraph({ id }: { id: Address }) {
 
     // Apply dagre layout
     return getLayoutedElements(nodes, edges, "TB");
-  }, [data]);
+  }, [data, selectedNodeId]);
 
   if (isPending) {
     return (
@@ -218,15 +258,29 @@ export function AttestationGraph({ id }: { id: Address }) {
   }
 
   return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle>Attestation Graph</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div style={{ width: "100%", height: "600px" }}>
-          <Flow nodes={nodes} edges={edges} />
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Attestation Graph</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div style={{ width: "100%", height: "600px" }}>
+            <Flow
+              nodes={nodes}
+              edges={edges}
+              onNodeClick={handleNodeClick}
+              selectedNodeId={selectedNodeId}
+            />
+          </div>
+        </CardContent>
+      </Card>
+      {selectedAttestation && (
+        <AttestationDialog
+          attestation={selectedAttestation}
+          vaultId={id}
+          onClose={handleCloseDialog}
+        />
+      )}
+    </>
   );
 }

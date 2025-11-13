@@ -474,7 +474,7 @@ function CreateAttestationDialog({
   );
 }
 
-function AttestationDialog({
+export function AttestationDialog({
   attestation,
   vaultId,
   onClose,
