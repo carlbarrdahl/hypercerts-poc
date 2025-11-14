@@ -22,6 +22,7 @@ const vaultsQuery = gql`
 		) {
 			items {
 				id
+				owner
 				parent
 				percent
 				token
@@ -419,9 +420,9 @@ function mapTimestamps<
 		...data,
 		items: data.items.map((item) => ({
 			...item,
-			metadata: item.decodedParsed?.metadata
-				? JSON.parse(item.decodedParsed.metadata)
-				: undefined,
+			// metadata: item.decodedParsed?.metadata
+			// 	? JSON.parse(item.decodedParsed.metadata)
+			// 	: undefined,
 			createdAt: item.createdAt ? new Date(+item.createdAt) : undefined,
 			updatedAt: item.updatedAt ? new Date(+item.updatedAt) : undefined,
 		})),

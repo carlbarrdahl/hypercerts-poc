@@ -16,7 +16,8 @@ import {
   Handle,
 } from "@xyflow/react";
 import dagre from "@dagrejs/dagre";
-import { useHypercertsAttestations } from "@workspace/sdk";
+import { useHypercertsAttestations, useHypercerts } from "@workspace/sdk";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -74,6 +75,33 @@ const getLayoutedElements = (
   return { nodes: newNodes, edges };
 };
 
+function VaultNode({ data, selected }: { data: any; selected?: boolean }) {
+  const selectedStyles = selected
+    ? "ring-4 ring-purple-400 ring-offset-2 shadow-lg scale-105"
+    : "";
+
+  const projectName = data.vault?.metadata?.title || "Untitled Project";
+
+  return (
+    <div
+      className={`px-4 py-3 rounded-lg border-2 bg-purple-50 border-purple-300 shadow-md w-[250px] cursor-pointer hover:shadow-lg transition-all ${selectedStyles}`}
+    >
+      <Handle type="target" position={Position.Top} />
+      <div className="text-xs font-semibold uppercase tracking-wide text-purple-700 mb-1">
+        Vault / Project
+      </div>
+      <div
+        className="text-sm font-medium text-gray-900 mb-1 truncate"
+        title={projectName}
+      >
+        {projectName}
+      </div>
+      <div className="text-xs text-gray-500 font-mono">{truncate(data.id)}</div>
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+}
+
 function AttestationNode({
   data,
   selected,
@@ -93,16 +121,18 @@ function AttestationNode({
     ? "ring-4 ring-blue-400 ring-offset-2 shadow-lg scale-105"
     : "";
 
+  const metadata = JSON.parse(data.decodedParsed.metadata);
+
   return (
     <div
-      className={`px-4 py-3 rounded-lg border-2 ${typeColor} shadow-sm min-w-[250px] cursor-pointer hover:shadow-md transition-all ${selectedStyles}`}
+      className={`px-4 py-3 rounded-lg border-2 ${typeColor} shadow-sm w-[250px] cursor-pointer hover:shadow-md transition-all ${selectedStyles}`}
     >
       <Handle type="target" position={Position.Top} />
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
         {parsed?.type || "Unknown"}
       </div>
       <div className="text-sm font-medium text-gray-900 mb-1">
-        {data?.metadata?.title || "Untitled"}
+        {metadata?.title || "Untitled"}
       </div>
       <div className="text-xs text-gray-500 font-mono">{truncate(data.id)}</div>
       <div className="text-xs text-gray-400 mt-1">
@@ -114,6 +144,7 @@ function AttestationNode({
 }
 
 const nodeTypes = {
+  vault: VaultNode,
   attestation: AttestationNode,
 };
 
@@ -173,6 +204,13 @@ export function AttestationGraph({ id }: { id: Address }) {
     null
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const { sdk } = useHypercerts();
+
+  const { data: vault } = useQuery({
+    queryKey: ["vault", id],
+    queryFn: () => sdk?.vault.query({ where: { id }, limit: 1 }) ?? null,
+    select: (data) => data?.items?.[0],
+  });
 
   const { data, isPending } = useHypercertsAttestations(
     {
@@ -186,9 +224,11 @@ export function AttestationGraph({ id }: { id: Address }) {
       refetchInterval: 5000,
     }
   );
-
   const handleNodeClick = useCallback((node: Node) => {
-    setSelectedAttestation(node.data);
+    // Only show dialog for attestation nodes, not vault nodes
+    if (node.type === "attestation") {
+      setSelectedAttestation(node.data);
+    }
     setSelectedNodeId(node.id);
   }, []);
 
@@ -205,34 +245,54 @@ export function AttestationGraph({ id }: { id: Address }) {
     // Create a map of attestations by ID for quick lookup
     const attestationMap = new Map(data.items.map((item) => [item.id, item]));
 
-    // Build nodes with selected state
-    const nodes: Node[] = data.items.map((item) => ({
-      id: item.id,
-      type: "attestation",
-      data: item,
-      position: { x: 0, y: 0 }, // Will be set by dagre
-      selected: item.id === selectedNodeId,
-    }));
+    // Add root vault node
+    const rootNodeId = `vault-${id}`;
+    const nodes: Node[] = [
+      {
+        id: rootNodeId,
+        type: "vault",
+        data: { id, vault },
+        position: { x: 0, y: 0 }, // Will be set by dagre
+        selected: rootNodeId === selectedNodeId,
+      },
+      // Add attestation nodes with selected state
+      ...data.items.map((item) => ({
+        id: item.id,
+        type: "attestation",
+        data: item,
+        position: { x: 0, y: 0 }, // Will be set by dagre
+        selected: item.id === selectedNodeId,
+      })),
+    ];
 
     // Build edges using refUID
-    const edges: Edge[] = data.items
-      .filter(
-        (item) =>
-          item.refUID &&
-          item.refUID !==
-            "0x0000000000000000000000000000000000000000000000000000000000000000" &&
-          attestationMap.has(item.refUID)
-      )
-      .map((item) => ({
-        id: `${item.refUID}-${item.id}`,
-        source: item.refUID,
+    const edges: Edge[] = data.items.map((item) => {
+      // If attestation has a valid refUID that points to another attestation, connect them
+      if (
+        item.refUID &&
+        item.refUID !==
+          "0x0000000000000000000000000000000000000000000000000000000000000000" &&
+        attestationMap.has(item.refUID)
+      ) {
+        return {
+          id: `${item.refUID}-${item.id}`,
+          source: item.refUID,
+          target: item.id,
+          type: ConnectionLineType.SmoothStep,
+        };
+      }
+      // Otherwise, connect to the root vault node
+      return {
+        id: `${rootNodeId}-${item.id}`,
+        source: rootNodeId,
         target: item.id,
         type: ConnectionLineType.SmoothStep,
-      }));
+      };
+    });
 
     // Apply dagre layout
     return getLayoutedElements(nodes, edges, "TB");
-  }, [data, selectedNodeId]);
+  }, [data, selectedNodeId, id, vault]);
 
   if (isPending) {
     return (

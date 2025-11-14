@@ -1,5 +1,5 @@
 import { Geist, IBM_Plex_Mono } from "next/font/google";
-
+import { Metadata } from "next";
 import "@workspace/ui/globals.css";
 // import { Providers } from "@/components/providers";
 import { Providers } from "@/components/providers-local";
@@ -19,6 +19,10 @@ const fontMono = IBM_Plex_Mono({
   preload: false,
 });
 
+export const metadata = {
+  title: "HyperFund",
+  description: "HyperFund",
+};
 export default async function RootLayout({
   children,
 }: Readonly<{

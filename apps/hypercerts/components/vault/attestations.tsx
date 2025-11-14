@@ -488,6 +488,7 @@ export function AttestationDialog({
   const { address } = useAccount();
   const parsed = attestation.decodedParsed as any;
   const isMilestone = parsed?.type === "milestone";
+  const isVerification = parsed?.type === "verification";
 
   // Parse metadata if it's a string
   let metadata: any = {};
@@ -501,6 +502,11 @@ export function AttestationDialog({
       metadata = parsed.metadata || {};
     }
   }
+
+  const hasRefAttestation =
+    attestation.refUID &&
+    attestation.refUID !==
+      "0x0000000000000000000000000000000000000000000000000000000000000000";
 
   const handleVerify = (verified: boolean) => {
     if (!address) {
@@ -542,176 +548,282 @@ export function AttestationDialog({
 
   return (
     <Dialog open={!!attestation} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            Attestation Details
-            {isMilestone && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                (Milestone)
-              </span>
+          <div className="flex items-center gap-3">
+            {isMilestone && <Award className="w-6 h-6 text-blue-500" />}
+            {isVerification && (
+              <ShieldCheck className="w-6 h-6 text-green-500" />
             )}
-          </DialogTitle>
-          <DialogDescription>
-            View and verify attestation details
-          </DialogDescription>
+            <div>
+              <DialogTitle className="text-xl">
+                {metadata?.title || "Attestation Details"}
+              </DialogTitle>
+              <DialogDescription className="flex items-center gap-2 mt-1">
+                <span className="capitalize font-medium">{parsed?.type}</span>
+                {isVerification && metadata?.verified !== undefined && (
+                  <>
+                    <span>•</span>
+                    <span
+                      className={
+                        metadata.verified ? "text-green-600" : "text-red-600"
+                      }
+                    >
+                      {metadata.verified ? "Verified" : "Rejected"}
+                    </span>
+                  </>
+                )}
+                {isMilestone && metadata?.status && (
+                  <>
+                    <span>•</span>
+                    <span className="capitalize">{metadata.status}</span>
+                  </>
+                )}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Information */}
-          <div className="space-y-4">
+          {/* Main Content Card */}
+          {metadata?.description && (
+            <div className="bg-muted/50 rounded-lg p-4">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {metadata.description}
+              </p>
+            </div>
+          )}
+
+          {/* Image Display */}
+          {metadata?.image && (
+            <div className="rounded-lg overflow-hidden border">
+              <img
+                src={metadata.image}
+                alt={metadata.title || "Attestation image"}
+                className="w-full h-auto"
+              />
+            </div>
+          )}
+
+          {/* Milestone-specific Fields */}
+          {isMilestone && (
+            <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              {metadata?.status && (
+                <div>
+                  <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">
+                    Status
+                  </label>
+                  <p className="text-sm font-medium mt-1 capitalize">
+                    {metadata.status}
+                  </p>
+                </div>
+              )}
+              {metadata?.completedDate && (
+                <div>
+                  <label className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">
+                    Completed Date
+                  </label>
+                  <p className="text-sm font-medium mt-1">
+                    {new Date(metadata.completedDate).toLocaleDateString(
+                      "en-US",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Verification-specific Fields */}
+          {isVerification && (
+            <div
+              className={`grid grid-cols-2 gap-4 p-4 rounded-lg border ${
+                metadata?.verified
+                  ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                  : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+              }`}
+            >
+              <div>
+                <label
+                  className={`text-xs font-semibold uppercase tracking-wide ${
+                    metadata?.verified
+                      ? "text-green-700 dark:text-green-300"
+                      : "text-red-700 dark:text-red-300"
+                  }`}
+                >
+                  Verification Status
+                </label>
+                <div className="flex items-center gap-2 mt-1">
+                  {metadata?.verified ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-600">
+                        Verified
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-4 h-4 text-red-600" />
+                      <span className="text-sm font-medium text-red-600">
+                        Rejected
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              {metadata?.verifier && (
+                <div>
+                  <label
+                    className={`text-xs font-semibold uppercase tracking-wide ${
+                      metadata?.verified
+                        ? "text-green-700 dark:text-green-300"
+                        : "text-red-700 dark:text-red-300"
+                    }`}
+                  >
+                    Verifier
+                  </label>
+                  <p className="text-sm font-medium mt-1">
+                    {metadata.verifier}
+                  </p>
+                </div>
+              )}
+              {metadata?.verifierAddress && (
+                <div className="col-span-2">
+                  <label
+                    className={`text-xs font-semibold uppercase tracking-wide ${
+                      metadata?.verified
+                        ? "text-green-700 dark:text-green-300"
+                        : "text-red-700 dark:text-red-300"
+                    }`}
+                  >
+                    Verifier Address
+                  </label>
+                  <p className="text-sm font-mono mt-1">
+                    <EnsName address={metadata.verifierAddress as Address} />
+                  </p>
+                </div>
+              )}
+              {metadata?.refAttestationId && (
+                <div className="col-span-2">
+                  <label
+                    className={`text-xs font-semibold uppercase tracking-wide ${
+                      metadata?.verified
+                        ? "text-green-700 dark:text-green-300"
+                        : "text-red-700 dark:text-red-300"
+                    }`}
+                  >
+                    References Attestation
+                  </label>
+                  <p className="text-xs font-mono mt-1 break-all">
+                    {metadata.refAttestationId}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* GeoJSON Link */}
+          {metadata?.geoJSON && (
+            <div className="p-4 bg-muted/30 rounded-lg border">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Geographic Data
+              </label>
+              <p className="text-sm mt-2">
+                {typeof metadata.geoJSON === "string" ? (
+                  <a
+                    href={metadata.geoJSON}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline flex items-center gap-1"
+                  >
+                    View GeoJSON →
+                  </a>
+                ) : (
+                  <span className="font-mono text-xs">
+                    {JSON.stringify(metadata.geoJSON, null, 2)}
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
+          {/* Technical Details */}
+          <div className="border-t pt-6 space-y-4">
             <h3 className="text-sm font-semibold text-foreground">
-              Information
+              Technical Details
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Attestation ID
-                </label>
-                <p className="font-mono text-sm break-all mt-1">
-                  {attestation.id}
-                </p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Type
-                </label>
-                <p className="text-sm font-medium mt-1 capitalize">
-                  {parsed?.type || "Unknown"}
-                </p>
-              </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Attester
                 </label>
-                <p className="text-sm mt-1">
+                <p className="mt-1 font-mono text-xs">
                   <EnsName address={attestation.attester} />
-                </p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Recipient
-                </label>
-                <p className="text-sm mt-1">
-                  <EnsName address={attestation.recipient} />
-                </p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Visibility
-                </label>
-                <p className="text-sm font-medium mt-1 capitalize">
-                  {parsed?.visibility || "Unknown"}
                 </p>
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Created
                 </label>
-                <p className="text-sm mt-1">{timeAgo(attestation.createdAt)}</p>
+                <p className="mt-1">
+                  {new Date(Number(attestation.createdAt)).toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {timeAgo(attestation.createdAt)}
+                </p>
               </div>
-              {attestation.refUID && (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Visibility
+                </label>
+                <p className="mt-1 capitalize">{parsed?.visibility || "—"}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  On-chain
+                </label>
+                <p className="mt-1">
+                  {attestation.isOffchain ? "No (Off-chain)" : "Yes"}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Attestation ID
+                </label>
+                <p className="mt-1 font-mono text-xs break-all">
+                  {attestation.id}
+                </p>
+              </div>
+              {hasRefAttestation && (
                 <div className="col-span-2">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Reference UID
                   </label>
-                  <p className="font-mono text-sm break-all mt-1">
-                    {truncate(attestation.refUID)}
+                  <p className="mt-1 font-mono text-xs break-all">
+                    {attestation.refUID}
                   </p>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Metadata Section */}
-          {Object.keys(metadata).length > 0 && (
-            <div className="border-t pt-6 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                Metadata
-              </h3>
-              <div className="space-y-4">
-                {metadata.title && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Title
-                    </label>
-                    <p className="text-sm font-medium mt-1">{metadata.title}</p>
-                  </div>
-                )}
-                {metadata.description && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Description
-                    </label>
-                    <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">
-                      {metadata.description}
-                    </p>
-                  </div>
-                )}
-                {metadata.image && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
-                      Image
-                    </label>
-                    <div className="mt-2">
-                      <img
-                        src={metadata.image}
-                        alt={metadata.title || "Attestation image"}
-                        className="max-w-full h-auto rounded-lg border shadow-sm"
-                      />
-                      <a
-                        href={metadata.image}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline mt-1 inline-block"
-                      >
-                        Open image →
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {metadata.geoJSON && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      GeoJSON URL
-                    </label>
-                    <p className="text-sm mt-1 break-all">
-                      {typeof metadata.geoJSON === "string" ? (
-                        <a
-                          href={metadata.geoJSON}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          {metadata.geoJSON}
-                        </a>
-                      ) : (
-                        <span className="font-mono text-xs">
-                          {JSON.stringify(metadata.geoJSON)}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
           {isMilestone && address && (
-            <>
-              <Button
-                onClick={() => handleVerify(true)}
-                disabled={isVerifying}
-                isLoading={isVerifying}
-                loadingText="Verifying..."
-                className="flex-1 sm:flex-initial"
-                icon={CheckCircle2}
-              >
-                Verify Milestone
-              </Button>
-            </>
+            <Button
+              onClick={() => handleVerify(true)}
+              disabled={isVerifying}
+              isLoading={isVerifying}
+              loadingText="Verifying..."
+              className="flex-1 sm:flex-initial"
+              icon={CheckCircle2}
+            >
+              Verify Milestone
+            </Button>
           )}
           <Button variant="outline" onClick={onClose}>
             Close
