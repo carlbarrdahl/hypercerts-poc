@@ -66,6 +66,8 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
 
     event ChildVaultRegistered(address indexed child);
 
+    event SharesMinted(address indexed recipient, uint256 shares);
+
     constructor() {
         _disableInitializers();
     }
@@ -97,6 +99,21 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
         isChildVault[msg.sender] = true;
         childVaults.push(msg.sender);
         emit ChildVaultRegistered(msg.sender);
+    }
+
+    /**
+     * @notice Mint shares directly to a contributor (owner only)
+     * @dev Allows vault owner to reward contributors for their work without requiring asset deposit
+     * @param recipient Address to receive the shares
+     * @param shares Number of shares to mint
+     */
+    function mintShares(address recipient, uint256 shares) external {
+        require(msg.sender == config.owner, "HyperVault: only owner");
+        require(recipient != address(0), "HyperVault: zero address");
+        require(shares > 0, "HyperVault: zero shares");
+
+        _mint(recipient, shares);
+        emit SharesMinted(recipient, shares);
     }
 
     /**

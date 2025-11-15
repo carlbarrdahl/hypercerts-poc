@@ -24,9 +24,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
+import { Button } from "@workspace/ui/components/button";
+import { Badge } from "@workspace/ui/components/badge";
 import { truncate } from "@/lib/truncate";
 import { timeAgo } from "@/lib/format";
 import { AttestationDialog } from "./attestations";
+import { Download, Filter } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
 
 import "@xyflow/react/dist/style.css";
 
@@ -110,26 +121,51 @@ function AttestationNode({
   selected?: boolean;
 }) {
   const parsed = data.decodedParsed as any;
-  const typeColor =
-    parsed?.type === "milestone"
-      ? "bg-blue-50 border-blue-200"
-      : parsed?.type === "verification"
-        ? "bg-green-50 border-green-200"
-        : "bg-gray-50 border-gray-200";
+  const metadata = JSON.parse(data.decodedParsed.metadata);
+
+  const isMilestone = parsed?.type === "milestone";
+  const isVerification = parsed?.type === "verification";
+  const isWorkClaim = parsed?.type === "work-claim";
+  const isVerified = metadata?.verified === true;
+
+  // Color coding based on type and verification status
+  let typeColor = "bg-gray-50 border-gray-200";
+  let badgeColor = "bg-gray-500";
+
+  if (isMilestone) {
+    typeColor = "bg-blue-50 border-blue-300";
+    badgeColor = "bg-blue-500";
+  } else if (isVerification) {
+    typeColor = isVerified
+      ? "bg-green-50 border-green-300"
+      : "bg-red-50 border-red-300";
+    badgeColor = isVerified ? "bg-green-500" : "bg-red-500";
+  } else if (isWorkClaim) {
+    typeColor = "bg-purple-50 border-purple-200";
+    badgeColor = "bg-purple-500";
+  }
 
   const selectedStyles = selected
     ? "ring-4 ring-blue-400 ring-offset-2 shadow-lg scale-105"
     : "";
-
-  const metadata = JSON.parse(data.decodedParsed.metadata);
 
   return (
     <div
       className={`px-4 py-3 rounded-lg border-2 ${typeColor} shadow-sm w-[250px] cursor-pointer hover:shadow-md transition-all ${selectedStyles}`}
     >
       <Handle type="target" position={Position.Top} />
-      <div className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
-        {parsed?.type || "Unknown"}
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+          {parsed?.type || "Unknown"}
+        </div>
+        {data.verificationCount > 0 && (
+          <Badge
+            variant="secondary"
+            className={`text-xs ${badgeColor} text-white`}
+          >
+            {data.verificationCount} ✓
+          </Badge>
+        )}
       </div>
       <div className="text-sm font-medium text-gray-900 mb-1">
         {metadata?.title || "Untitled"}
@@ -204,6 +240,12 @@ export function AttestationGraph({ id }: { id: Address }) {
     null
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    milestone: true,
+    workClaim: true,
+    verification: true,
+    verifiedOnly: false,
+  });
   const { sdk } = useHypercerts();
 
   const { data: vault } = useQuery({
@@ -242,8 +284,44 @@ export function AttestationGraph({ id }: { id: Address }) {
       return { nodes: [], edges: [] };
     }
 
+    // Filter attestations based on selected filters
+    let filteredItems = data.items.filter((item) => {
+      const parsed = item.decodedParsed as any;
+      const type = parsed?.type;
+
+      // Type filtering
+      if (type === "milestone" && !filters.milestone) return false;
+      if (type === "work-claim" && !filters.workClaim) return false;
+      if (type === "verification" && !filters.verification) return false;
+
+      // Verified-only filter
+      if (filters.verifiedOnly && type === "verification") {
+        const metadata = JSON.parse(parsed.metadata);
+        if (!metadata?.verified) return false;
+      }
+
+      return true;
+    });
+
+    // Count verifications for each attestation
+    const verificationCounts = new Map<string, number>();
+    data.items.forEach((item) => {
+      const parsed = item.decodedParsed as any;
+      if (parsed?.type === "verification" && item.refUID) {
+        const metadata = JSON.parse(parsed.metadata);
+        if (metadata?.verified) {
+          verificationCounts.set(
+            item.refUID,
+            (verificationCounts.get(item.refUID) || 0) + 1
+          );
+        }
+      }
+    });
+
     // Create a map of attestations by ID for quick lookup
-    const attestationMap = new Map(data.items.map((item) => [item.id, item]));
+    const attestationMap = new Map(
+      filteredItems.map((item) => [item.id, item])
+    );
 
     // Add root vault node
     const rootNodeId = `vault-${id}`;
@@ -255,18 +333,21 @@ export function AttestationGraph({ id }: { id: Address }) {
         position: { x: 0, y: 0 }, // Will be set by dagre
         selected: rootNodeId === selectedNodeId,
       },
-      // Add attestation nodes with selected state
-      ...data.items.map((item) => ({
+      // Add attestation nodes with verification counts
+      ...filteredItems.map((item) => ({
         id: item.id,
         type: "attestation",
-        data: item,
+        data: {
+          ...item,
+          verificationCount: verificationCounts.get(item.id) || 0,
+        },
         position: { x: 0, y: 0 }, // Will be set by dagre
         selected: item.id === selectedNodeId,
       })),
     ];
 
     // Build edges using refUID
-    const edges: Edge[] = data.items.map((item) => {
+    const edges: Edge[] = filteredItems.map((item) => {
       // If attestation has a valid refUID that points to another attestation, connect them
       if (
         item.refUID &&
@@ -292,7 +373,26 @@ export function AttestationGraph({ id }: { id: Address }) {
 
     // Apply dagre layout
     return getLayoutedElements(nodes, edges, "TB");
-  }, [data, selectedNodeId, id, vault]);
+  }, [data, selectedNodeId, id, vault, filters]);
+
+  const handleExport = () => {
+    // Create a simple text-based export for now
+    const exportData = {
+      vault: id,
+      timestamp: new Date().toISOString(),
+      attestations: data?.items || [],
+      filters,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attestation-graph-${id}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (isPending) {
     return (
@@ -321,7 +421,61 @@ export function AttestationGraph({ id }: { id: Address }) {
     <>
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Attestation Graph</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Attestation Graph</CardTitle>
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Show Types</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={filters.milestone}
+                    onCheckedChange={(checked) =>
+                      setFilters((f) => ({ ...f, milestone: checked }))
+                    }
+                  >
+                    Milestones
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={filters.workClaim}
+                    onCheckedChange={(checked) =>
+                      setFilters((f) => ({ ...f, workClaim: checked }))
+                    }
+                  >
+                    Work Claims
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={filters.verification}
+                    onCheckedChange={(checked) =>
+                      setFilters((f) => ({ ...f, verification: checked }))
+                    }
+                  >
+                    Verifications
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Additional Filters</DropdownMenuLabel>
+                  <DropdownMenuCheckboxItem
+                    checked={filters.verifiedOnly}
+                    onCheckedChange={(checked) =>
+                      setFilters((f) => ({ ...f, verifiedOnly: checked }))
+                    }
+                  >
+                    Verified Only
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div style={{ width: "100%", height: "600px" }}>

@@ -276,7 +276,7 @@ function ProjectCard({ vault }: { vault: any }) {
             </div>
           )}
           {vault.metadata?.pathway && (
-            <Badge className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm">
+            <Badge className="absolute top-3 right-3 ">
               {vault.metadata.pathway}
             </Badge>
           )}

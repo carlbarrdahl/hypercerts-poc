@@ -20,6 +20,7 @@ import {
 import { Attestation } from '../lib/indexer';
 import { Transaction } from 'viem';
 import { AttestationInput } from '../lib/eas';
+import { Address } from 'viem';
 
 type Opts = {
 	enabled?: boolean;
@@ -30,6 +31,21 @@ export function useCreateHypercerts() {
 	const { sdk } = useHypercerts();
 	return useMutation({
 		mutationFn: async (config: HyperVaultConfig) => sdk?.vault.create(config),
+	});
+}
+
+export function useMintShares() {
+	const { sdk } = useHypercerts();
+	return useMutation({
+		mutationFn: async ({
+			vaultId,
+			recipient,
+			shares,
+		}: {
+			vaultId: Address;
+			recipient: Address;
+			shares: bigint;
+		}) => sdk?.vault.mintShares(vaultId, recipient, shares),
 	});
 }
 

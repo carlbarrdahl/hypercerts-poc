@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { LoginButton } from "./login-button";
 import { Button } from "@workspace/ui/components/button";
+import { useAccount } from "wagmi";
 
 export function Header() {
+  const { isConnected } = useAccount();
+
   return (
     <header className="flex items-center justify-between p-2">
       <Link href="/">
@@ -15,6 +20,11 @@ export function Header() {
         <Link href="/regions">
           <Button variant="link">Regions</Button>
         </Link>
+        {isConnected && (
+          <Link href="/my-impact">
+            <Button variant="link">My Impact</Button>
+          </Link>
+        )}
         <Link href="/certs/create">
           <Button variant="link">Create Project</Button>
         </Link>
