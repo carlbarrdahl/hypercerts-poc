@@ -63,6 +63,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { Markdown } from "../markdown";
 
 type Visibility = "private" | "organization" | "draft" | "published";
 
@@ -770,7 +771,10 @@ function CreateAttestationDialog({
                       placeholder="E.g., Site Assessment Report"
                       value={newResource.title}
                       onChange={(e) =>
-                        setNewResource({ ...newResource, title: e.target.value })
+                        setNewResource({
+                          ...newResource,
+                          title: e.target.value,
+                        })
                       }
                     />
                   </div>
@@ -846,7 +850,9 @@ function CreateAttestationDialog({
                       size="sm"
                       onClick={addResource}
                       disabled={
-                        !newResource.title || !newResource.src || !newResource.mime
+                        !newResource.title ||
+                        !newResource.src ||
+                        !newResource.mime
                       }
                     >
                       Add Document
@@ -1265,10 +1271,11 @@ export function AttestationDialog({
         <div className="space-y-6">
           {/* Main Content Card */}
           {metadata?.description && (
-            <div className="bg-muted/50 rounded-lg p-4">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            <div className="bg-muted/50 rounded-lg p-4 max-h-[300px] overflow-y-auto">
+              <Markdown className="prose-sm">{metadata.description}</Markdown>
+              {/* <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {metadata.description}
-              </p>
+              </p> */}
             </div>
           )}
 

@@ -68,25 +68,8 @@ ponder.on("HyperVault:Deposit", async ({ event, context }) => {
     createdAt: toTimestamp(event.block.timestamp),
   });
 
-  // Track depositors as funders (they provided assets)
-  await context.db
-    .insert(funder)
-    .values({
-      id: event.id,
-      vault: id,
-      address: sender,
-      assets,
-      token,
-      createdAt: toTimestamp(event.block.timestamp),
-    })
-    .onConflictDoUpdate((row) => ({
-      address: sender,
-      vault: id,
-      assets: (row.assets ?? 0n) + BigInt(assets),
-      updatedAt: toTimestamp(event.block.timestamp),
-    }));
-
   // Track depositors as contributors (they received shares for their assets)
+  // NOTE: Depositors are NOT funders - they get shares in return for assets
   await context.db
     .insert(contributor)
     .values({

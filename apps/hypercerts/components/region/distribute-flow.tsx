@@ -248,6 +248,7 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
   // Filter for project vaults only
   const projectVaults = useMemo(() => {
     if (!allVaults?.items) return [];
+    return allVaults.items;
     return allVaults.items.filter(
       (v) =>
         v.metadata?.type === "project" &&
