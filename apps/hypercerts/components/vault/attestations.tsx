@@ -34,6 +34,14 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@workspace/ui/components/sheet";
+import {
   Form,
   FormControl,
   FormDescription,
@@ -178,6 +186,7 @@ export function Attestations({ id }: { id: Address }) {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[40px]"></TableHead>
+                <TableHead className="w-[60px]">Image</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Description</TableHead>
@@ -234,6 +243,21 @@ export function Attestations({ id }: { id: Address }) {
                           onChange={() => toggleSelection(item.id)}
                           className="cursor-pointer"
                         />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {metadata?.image ? (
+                        <div className="w-12 h-12 rounded overflow-hidden bg-muted border">
+                          <img
+                            src={metadata.image}
+                            alt={metadata.title || "Attestation"}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded bg-muted/30 border flex items-center justify-center">
+                          <Award className="w-5 h-5 text-muted-foreground" />
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
@@ -312,7 +336,7 @@ export function Attestations({ id }: { id: Address }) {
         )}
       </CardContent>
       {selectedAttestation && (
-        <AttestationDialog
+        <AttestationSheet
           attestation={selectedAttestation}
           vaultId={id}
           onClose={() => setSelectedAttestation(null)}
@@ -677,6 +701,18 @@ function CreateAttestationDialog({
                   <FormDescription>
                     URL to an image associated with this attestation
                   </FormDescription>
+                  {field.value && (
+                    <div className="mt-2 rounded-lg overflow-hidden border">
+                      <img
+                        src={field.value}
+                        alt="Preview"
+                        className="w-full h-auto max-h-48 object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -1087,11 +1123,20 @@ function BatchVerificationDialog({
 const workClaimFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
+  image: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val === "" || z.string().url().safeParse(val).success,
+      {
+        message: "Must be a valid URL",
+      }
+    ),
 });
 
 type WorkClaimFormValues = z.infer<typeof workClaimFormSchema>;
 
-export function AttestationDialog({
+export function AttestationSheet({
   attestation,
   vaultId,
   onClose,
@@ -1132,6 +1177,7 @@ export function AttestationDialog({
     defaultValues: {
       title: "",
       description: "",
+      image: "",
     },
   });
 
@@ -1169,6 +1215,7 @@ export function AttestationDialog({
           metadata: {
             title: values.title,
             description: values.description || undefined,
+            image: values.image || undefined,
           },
         },
       },
@@ -1231,62 +1278,63 @@ export function AttestationDialog({
   };
 
   return (
-    <Dialog open={!!attestation} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            {isMilestone && <Award className="w-6 h-6 text-blue-500" />}
-            {isVerification && (
-              <ShieldCheck className="w-6 h-6 text-green-500" />
-            )}
-            <div>
-              <DialogTitle className="text-xl">
-                {metadata?.title || "Attestation Details"}
-              </DialogTitle>
-              <DialogDescription className="flex items-center gap-2 mt-1">
-                <span className="capitalize font-medium">{parsed?.type}</span>
-                {isVerification && metadata?.verified !== undefined && (
-                  <>
-                    <span>•</span>
-                    <span
-                      className={
-                        metadata.verified ? "text-green-600" : "text-red-600"
-                      }
-                    >
-                      {metadata.verified ? "Verified" : "Rejected"}
-                    </span>
-                  </>
-                )}
-                {isMilestone && metadata?.status && (
-                  <>
-                    <span>•</span>
-                    <span className="capitalize">{metadata.status}</span>
-                  </>
-                )}
-              </DialogDescription>
+    <Sheet open={!!attestation} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="w-full sm:w-[800px] sm:max-w-[90vw] overflow-y-auto p-0">
+        <div className="px-6 pt-6 pb-4 border-b bg-muted/20">
+          <SheetHeader>
+            <div className="flex items-center gap-3">
+              {isMilestone && <Award className="w-6 h-6 text-blue-500" />}
+              {isVerification && (
+                <ShieldCheck className="w-6 h-6 text-green-500" />
+              )}
+              <div className="flex-1 min-w-0">
+                <SheetTitle className="text-xl">
+                  {metadata?.title || "Attestation Details"}
+                </SheetTitle>
+                <SheetDescription className="flex items-center gap-2 mt-1">
+                  <span className="capitalize font-medium">{parsed?.type}</span>
+                  {isVerification && metadata?.verified !== undefined && (
+                    <>
+                      <span>•</span>
+                      <span
+                        className={
+                          metadata.verified ? "text-green-600" : "text-red-600"
+                        }
+                      >
+                        {metadata.verified ? "Verified" : "Rejected"}
+                      </span>
+                    </>
+                  )}
+                  {isMilestone && metadata?.status && (
+                    <>
+                      <span>•</span>
+                      <span className="capitalize">{metadata.status}</span>
+                    </>
+                  )}
+                </SheetDescription>
+              </div>
             </div>
-          </div>
-        </DialogHeader>
+          </SheetHeader>
+        </div>
 
-        <div className="space-y-6">
-          {/* Main Content Card */}
-          {metadata?.description && (
-            <div className="bg-muted/50 rounded-lg p-4 max-h-[300px] overflow-y-auto">
-              <Markdown className="prose-sm">{metadata.description}</Markdown>
-              {/* <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {metadata.description}
-              </p> */}
-            </div>
-          )}
-
-          {/* Image Display */}
+        <div className="px-6 py-6 space-y-6">
+          {/* Image Display - Show first if available */}
           {metadata?.image && (
-            <div className="rounded-lg overflow-hidden border">
+            <div className="rounded-lg overflow-hidden border shadow-sm max-w-2xl mx-auto">
               <img
                 src={metadata.image}
                 alt={metadata.title || "Attestation image"}
-                className="w-full h-auto"
+                className="w-full h-auto object-contain"
               />
+            </div>
+          )}
+
+          {/* Main Content Card */}
+          {metadata?.description && (
+            <div className="bg-muted/50 rounded-lg p-4">
+              <Markdown className="prose-sm max-w-none">
+                {metadata.description}
+              </Markdown>
             </div>
           )}
 
@@ -1325,7 +1373,7 @@ export function AttestationDialog({
 
           {/* Work Claim Creation Form for Milestones */}
           {isMilestone && (
-            <div className="border-t pt-6">
+            <div className="border-t pt-6 -mx-6 px-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">
@@ -1372,13 +1420,24 @@ export function AttestationDialog({
                         key={claim.id}
                         className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
+                        <div className="flex items-start gap-3">
+                          {claimMetadata?.image && (
+                            <div className="flex-shrink-0">
+                              <div className="w-16 h-16 rounded overflow-hidden border-2 border-purple-200 dark:border-purple-700">
+                                <img
+                                  src={claimMetadata.image}
+                                  alt={claimMetadata.title || "Work claim"}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-medium text-foreground">
                               {claimMetadata?.title || "Untitled Work Claim"}
                             </h4>
                             {claimMetadata?.description && (
-                              <p className="text-xs text-muted-foreground mt-1">
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                 {claimMetadata.description}
                               </p>
                             )}
@@ -1445,6 +1504,40 @@ export function AttestationDialog({
                               {...field}
                             />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={workClaimForm.control}
+                      name="image"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Image URL (Optional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="url"
+                              placeholder="https://example.com/image.jpg"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Add an image to illustrate this work
+                          </FormDescription>
+                          {field.value && (
+                            <div className="mt-2 rounded-lg overflow-hidden border">
+                              <img
+                                src={field.value}
+                                alt="Preview"
+                                className="w-full h-auto max-h-32 object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display =
+                                    "none";
+                                }}
+                              />
+                            </div>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1702,7 +1795,7 @@ export function AttestationDialog({
           )}
 
           {/* Technical Details */}
-          <div className="border-t pt-6 space-y-4">
+          <div className="border-t pt-6 space-y-4 -mx-6 px-6">
             <h3 className="text-sm font-semibold text-foreground">
               Technical Details
             </h3>
@@ -1762,35 +1855,37 @@ export function AttestationDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          {isVerifiable && address && (
-            <>
-              <Button
-                onClick={() => handleVerify(false)}
-                disabled={isVerifying}
-                variant="destructive"
-                className="flex-1 sm:flex-initial"
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                Reject
-              </Button>
-              <Button
-                onClick={() => handleVerify(true)}
-                disabled={isVerifying}
-                isLoading={isVerifying}
-                loadingText="Verifying..."
-                className="flex-1 sm:flex-initial"
-              >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Verify
-              </Button>
-            </>
-          )}
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="px-6 py-6 border-t bg-muted/20">
+          <SheetFooter className="flex-col sm:flex-row gap-2">
+            {isVerifiable && address && (
+              <>
+                <Button
+                  onClick={() => handleVerify(false)}
+                  disabled={isVerifying}
+                  variant="destructive"
+                  className="flex-1 sm:flex-initial"
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => handleVerify(true)}
+                  disabled={isVerifying}
+                  isLoading={isVerifying}
+                  loadingText="Verifying..."
+                  className="flex-1 sm:flex-initial"
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Verify
+                </Button>
+              </>
+            )}
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          </SheetFooter>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

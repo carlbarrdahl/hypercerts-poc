@@ -28,7 +28,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
 import { truncate } from "@/lib/truncate";
 import { timeAgo } from "@/lib/format";
-import { AttestationDialog } from "./attestations";
+import { AttestationSheet } from "./attestations";
 import { Download, Filter } from "lucide-react";
 import {
   DropdownMenu,
@@ -489,7 +489,7 @@ export function AttestationGraph({ id }: { id: Address }) {
         </CardContent>
       </Card>
       {selectedAttestation && (
-        <AttestationDialog
+        <AttestationSheet
           attestation={selectedAttestation}
           vaultId={id}
           onClose={handleCloseDialog}
