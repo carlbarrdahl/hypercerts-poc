@@ -7,7 +7,6 @@ import Link from "next/link";
 export default function RegionsPage() {
   const { data: regionsData, isLoading } = useListHypercerts(
     {
-      // where: { type: "bioregion" },
       limit: 100,
       orderBy: "createdAt",
       orderDirection: "desc",
@@ -15,7 +14,10 @@ export default function RegionsPage() {
     { refetchInterval: 5000 }
   );
 
-  const regions = regionsData?.items || [];
+  // Filter for regions only (type="region" in metadata)
+  const regions = (regionsData?.items || []).filter(
+    (item) => item.metadata?.type === "region"
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,61 +83,70 @@ export default function RegionsPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {regions.map((region) => (
-                  <Link
-                    key={region.id}
-                    href={`/regions/${region.id}`}
-                    className="group block"
-                  >
-                    <div className="bg-background border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-lg transition-all duration-200 h-full">
-                      <div className="p-6 space-y-4">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-foreground/5 rounded-lg group-hover:bg-foreground/10 transition-colors">
-                            <MapPin className="w-5 h-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-base mb-2 group-hover:text-muted-foreground transition-colors">
-                              {region.metadata?.title ||
-                                `Region ${region.id.slice(0, 8)}...`}
-                            </h3>
-                            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono">
-                                  {region.id.slice(0, 10)}...
-                                </span>
+                {regions.map((region) => {
+                  const metadata = region.metadata as Record<string, any>;
+                  const title = metadata?.title || `Region ${region.id.slice(0, 8)}...`;
+                  const description = metadata?.description || "";
+                  const image = metadata?.image;
+                  const iconicSpecies = metadata?.iconicSpecies;
+                  const regionId = metadata?.regionId;
+
+                  return (
+                    <Link
+                      key={region.id}
+                      href={`/regions/${region.id}`}
+                      className="group block"
+                    >
+                      <div className="bg-background border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-lg transition-all duration-200 h-full flex flex-col">
+                        {/* Region Image */}
+                        {image && (
+                          <div className="relative h-48 overflow-hidden bg-muted">
+                            <img
+                              src={image}
+                              alt={title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                            {regionId && (
+                              <div className="absolute top-3 right-3 px-2 py-1 bg-foreground/80 backdrop-blur-sm text-background rounded text-xs font-mono">
+                                {regionId}
                               </div>
-                              {region.createdAt && (
-                                <div>
-                                  Created{" "}
-                                  {new Date(
-                                    region.createdAt
-                                  ).toLocaleDateString()}
-                                </div>
-                              )}
-                            </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="p-6 space-y-4 flex-1 flex flex-col">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-base mb-2 group-hover:text-muted-foreground transition-colors line-clamp-2">
+                              {title}
+                            </h3>
+                            {description && (
+                              <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                                {description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-3 pt-3 border-t border-border">
+                            {iconicSpecies && (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <MapPin className="w-3.5 h-3.5" />
+                                <span>{iconicSpecies}</span>
+                              </div>
+                            )}
+
+                            {region.token && (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Coins className="w-3.5 h-3.5" />
+                                <span>Active vault</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-
-                        {region.token && (
-                          <div className="pt-3 border-t border-border space-y-2">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Coins className="w-3.5 h-3.5" />
-                              <span>Active vault</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {region.parent && (
-                          <div className="pt-2">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs">
-                              Nested vault
-                            </span>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             </>
           )}

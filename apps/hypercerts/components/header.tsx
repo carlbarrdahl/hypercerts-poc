@@ -11,7 +11,7 @@ export function Header() {
   return (
     <header className="flex items-center justify-between p-2">
       <Link href="/">
-        <h1 className="text-sm font-bold">Hypercerts</h1>
+        <h1 className="text-sm font-bold">Hyperfund</h1>
       </Link>
       <div className="w-full flex items-center justify-center gap-1">
         <Link href="/solutions">

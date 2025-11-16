@@ -1,73 +1,68 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useHypercerts, useListContributors } from "@workspace/sdk";
+import {
+  useHypercerts,
+  useListContributors,
+  useListFunders,
+} from "@workspace/sdk";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { useState } from "react";
 import { Address, parseUnits } from "viem";
 import { AllowanceCheck } from "../allowance-check";
-import { Amount, TokenAmount } from "../token-amount";
+import { TokenAmount } from "../token-amount";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
 import { useAccount } from "wagmi";
-
-function getLatLng(geoJSON: any) {
-  return geoJSON.features[0].geometry.coordinates[0][0].join(",");
-}
-
-const geoJSON = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: {
-        id: "bioregion-001",
-        name: "Example Coastal Bioregion",
-        biome: "Mediterranean shrubland",
-        area_km2: 123.4,
-        source: "user-generated",
-      },
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [-120.5, 35.1],
-            [-120.35, 35.05],
-            [-120.25, 35.12],
-            [-120.2, 35.25],
-            [-120.4, 35.3],
-            [-120.55, 35.22],
-            [-120.5, 35.1],
-          ],
-        ],
-      },
-    },
-  ],
-};
-
-const MAPBOX_ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN!;
+import { BannerImage } from "../banner-image";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Globe,
+  MapPin,
+  Leaf,
+  Users,
+  DollarSign,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { ContributorsTreemap } from "../vault/contributors-treemap";
+import { Map } from "../map";
+import { useFetchKML } from "@/hooks/use-fetch-kml";
+import { ContributorsList } from "../vault/contributors";
+import { FundersList } from "../vault/funders";
+import { Page } from "@/components/page";
 
 export function RegionDetails({ id }: { id: Address }) {
   const queryClient = useQueryClient();
   const { address } = useAccount();
-  const { data: vault } = useQuery({
+  const { sdk } = useHypercerts();
+
+  const {
+    data: vault,
+    error: vaultError,
+    isLoading: isLoadingVault,
+  } = useQuery({
     queryKey: ["region", id],
-    queryFn: () => sdk?.vault.query({ where: { id }, limit: 1 }),
+    queryFn: () => sdk?.vault.query({ where: { id }, limit: 1 }) ?? null,
     select: (data) => data?.items[0],
     refetchInterval: 1000,
   });
-  const { data: balance } = useQuery({
+
+  const { data: balance, isLoading: isLoadingBalance } = useQuery({
     queryKey: ["region", id, "balance"],
-    queryFn: () => sdk?.vault.balance(id),
+    queryFn: () => sdk?.vault.balance(id) ?? null,
     enabled: Boolean(id),
+    refetchInterval: 1000,
   });
-  console.log(getLatLng(geoJSON));
-  const { data: creator } = useListContributors(
+
+  const { data: creatorData } = useListContributors(
     {
       where: {
         vault: id,
@@ -75,13 +70,36 @@ export function RegionDetails({ id }: { id: Address }) {
       },
     },
     {
-      select: (data) => data?.items[0],
+      refetchInterval: 1000,
+    }
+  );
+  const creator = creatorData?.items?.[0];
+
+  const { data: contributorsData } = useListContributors(
+    {
+      where: { vault: id },
+    },
+    {
       refetchInterval: 1000,
     }
   );
 
+  const { data: fundersData } = useListFunders(
+    {
+      where: { vault: id },
+    },
+    {
+      refetchInterval: 1000,
+    }
+  );
+
+  // Fetch the KML/GeoJSON for the map
+  const geoJSONUrl = vault?.metadata?.geoJSON as string | undefined;
+  const { data: geoJSON, isLoading: isLoadingMap } = useFetchKML(
+    geoJSONUrl || ""
+  );
+
   const [amount, setAmount] = useState<number | null>(null);
-  const { sdk } = useHypercerts();
 
   const onSuccess = async () => {
     setTimeout(() => queryClient.invalidateQueries({ queryKey: [] }), 200);
@@ -89,113 +107,334 @@ export function RegionDetails({ id }: { id: Address }) {
 
   const deposit = useMutation({
     mutationFn: async (wei: bigint) => sdk?.vault.deposit(id, wei),
-    onSuccess,
+    onSuccess: () => {
+      onSuccess();
+      toast.success("Contribution successful!");
+    },
+    onError: (error) => {
+      toast.error("Contribution failed", {
+        description: error.message,
+      });
+    },
   });
+
   const withdraw = useMutation({
     mutationFn: async (wei: bigint) => sdk?.vault.withdraw(id, wei),
-    onSuccess,
+    onSuccess: () => {
+      onSuccess();
+      toast.success("Withdrawal successful!");
+    },
+    onError: (error) => {
+      toast.error("Withdrawal failed", {
+        description: error.message,
+      });
+    },
   });
+
   const fund = useMutation({
     mutationFn: async (wei: bigint) => sdk?.vault.fund(id, wei, true),
-    onSuccess,
+    onSuccess: () => {
+      onSuccess();
+      toast.success("Funding successful!");
+    },
+    onError: (error) => {
+      toast.error("Funding failed", {
+        description: error.message,
+      });
+    },
   });
 
-  console.log("creator", creator);
-
-  const amountInWei = parseUnits(String(amount ?? 0), vault?.token?.decimals);
-
-  return (
-    <div>
-      <h1>Region Details</h1>
-
-      <img
-        src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/geojson(${encodeURIComponent(JSON.stringify(geoJSON))})/${getLatLng(geoJSON)},8/1200x400?access_token=${MAPBOX_ACCESS_TOKEN}`}
-        alt="..."
-      />
-    </div>
+  const amountInWei = parseUnits(
+    String(amount ?? 0),
+    vault?.token?.decimals || 18
   );
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{vault?.metadata}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-1">
-          <div>Creator assets:</div>
-          <Amount amount={creator?.assets} />
+
+  const metadata = vault?.metadata as Record<string, any> | undefined;
+  const regionName = metadata?.title || "Region";
+  const description = metadata?.description || "";
+  const image = metadata?.image;
+  const iconicSpecies = metadata?.iconicSpecies;
+  const regionId = metadata?.regionId;
+
+  const isLoading = isLoadingVault || isLoadingBalance;
+
+  if (vaultError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-6xl mx-auto px-8 py-12">
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">
+                Error Loading Region
+              </CardTitle>
+              <CardDescription>
+                Unable to load region details. Please try again later.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
-        <div className="flex items-center gap-1">
-          <div>Creator shares:</div>
-          <Amount amount={creator?.shares} />
-        </div>
-        <div className="flex items-center gap-1">
-          <div>Assets:</div>
-          <TokenAmount
-            amount={balance?.assets}
-            token={vault?.token?.address!}
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          <div>Shares:</div>
-          <TokenAmount
-            amount={balance?.shares}
-            token={vault?.token?.address!}
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          <div>Price per share:</div>
-          <div>
-            {balance?.price} {vault?.token?.symbol}
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-6xl mx-auto px-8 py-12">
+          <div className="flex items-center justify-center py-20">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Loading region...</span>
+            </div>
           </div>
         </div>
-        {/* <pre>
-        {JSON.stringify({ id, parent, percent, metadata, token }, null, 2)}
-      </pre> */}
-        <Input
-          type="number"
-          value={amount}
-          placeholder="Amount"
-          onChange={(e) => setAmount(Number(e.target.value))}
-        />
-        <div className="flex gap-1">
-          <AllowanceCheck
-            tokenAddress={vault?.token?.address!}
-            amount={amountInWei}
-            spender={id!}
-          >
-            <Button
-              onClick={() => {
-                deposit.mutate(amountInWei);
-                setAmount(null);
-              }}
-            >
-              Deposit
-            </Button>
-          </AllowanceCheck>
-          <Button
-            onClick={() => {
-              withdraw.mutate(amountInWei);
-              setAmount(null);
-            }}
-          >
-            Withdraw
-          </Button>
-          <AllowanceCheck
-            tokenAddress={vault?.token?.address!}
-            amount={amountInWei}
-            spender={id!}
-          >
-            <Button
-              onClick={() => {
-                fund.mutate(amountInWei);
-                setAmount(null);
-              }}
-            >
-              Fund
-            </Button>
-          </AllowanceCheck>
+      </div>
+    );
+  }
+
+  return (
+    <Page title={"Back to regions"} backLink="/regions">
+      {/* Hero Section with Image */}
+      {image && (
+        <div className="relative h-96 overflow-hidden border-b border-border -mx-8">
+          <BannerImage src={image} alt={regionName} />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0">
+            <div className="max-w-7xl mx-auto px-8 py-8">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-foreground/10 backdrop-blur-sm rounded-lg">
+                  <Globe className="w-6 h-6" />
+                </div>
+                {iconicSpecies && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-foreground/10 backdrop-blur-sm rounded-full text-sm">
+                    <Leaf className="w-4 h-4" />
+                    <span>{iconicSpecies}</span>
+                  </div>
+                )}
+                {regionId && (
+                  <div className="px-3 py-1 bg-foreground/10 backdrop-blur-sm rounded-full text-sm font-mono">
+                    {regionId}
+                  </div>
+                )}
+              </div>
+              <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
+                {regionName}
+              </h1>
+            </div>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+        {/* Left Column - Main Info */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Description */}
+          {description && (
+            <Card className="border border-border">
+              <CardHeader>
+                <CardTitle className="text-xl">About This Region</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">
+                  {description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Map */}
+          {geoJSONUrl &&
+            (isLoadingMap ? (
+              <div className="h-96 flex items-center justify-center bg-muted rounded-lg border border-border">
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Loading map...</span>
+                </div>
+              </div>
+            ) : geoJSON ? (
+              <div className="overflow-hidden rounded-lg border border-border">
+                <Map geoJson={geoJSON} height={500} />
+              </div>
+            ) : (
+              <div className="h-96 flex items-center justify-center bg-muted rounded-lg border border-border">
+                <p className="text-muted-foreground">Map data unavailable</p>
+              </div>
+            ))}
+
+          {/* Contributors Treemap */}
+          <ContributorsTreemap id={id} />
+
+          {/* Contributors List */}
+          <Card className="border border-border">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Contributors
+              </CardTitle>
+              <CardDescription>
+                People who have contributed to this region
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ContributorsList id={id} />
+            </CardContent>
+          </Card>
+
+          {/* Funders List */}
+          <Card className="border border-border">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Funders
+              </CardTitle>
+              <CardDescription>
+                Organizations and individuals funding this region
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FundersList id={id} />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Actions & Stats (Sticky Sidebar) */}
+        <div className="lg:col-span-1">
+          <div className="space-y-6 lg:sticky lg:top-8">
+            {/* Stats Card */}
+            <Card className="border border-border">
+              <CardHeader>
+                <CardTitle className="text-lg">Region Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">
+                    Total Assets
+                  </span>
+                  <TokenAmount
+                    amount={balance?.assets}
+                    token={vault?.token?.address!}
+                  />
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">
+                    Total Shares
+                  </span>
+                  <TokenAmount
+                    amount={balance?.shares}
+                    token={vault?.token?.address!}
+                  />
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-muted-foreground">
+                    Price per Share
+                  </span>
+                  <span className="font-medium">
+                    {balance?.price} {vault?.token?.symbol}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions Card */}
+            <Card className="border border-border">
+              <CardHeader>
+                <CardTitle className="text-lg">Take Action</CardTitle>
+                <CardDescription>
+                  Contribute to or fund this bioregion
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  type="number"
+                  value={amount ?? ""}
+                  placeholder={`Amount in ${vault?.token?.symbol || "tokens"}`}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                  disabled={
+                    deposit.isPending || withdraw.isPending || fund.isPending
+                  }
+                />
+
+                <div className="space-y-2">
+                  <AllowanceCheck
+                    tokenAddress={vault?.token?.address!}
+                    amount={amountInWei}
+                    spender={id!}
+                  >
+                    <Button
+                      onClick={() => {
+                        deposit.mutate(amountInWei);
+                        setAmount(null);
+                      }}
+                      disabled={!amount || amount <= 0 || deposit.isPending}
+                      className="w-full"
+                    >
+                      {deposit.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Contributing...
+                        </>
+                      ) : (
+                        "Contribute (Get Shares)"
+                      )}
+                    </Button>
+                  </AllowanceCheck>
+
+                  <Button
+                    onClick={() => {
+                      withdraw.mutate(amountInWei);
+                      setAmount(null);
+                    }}
+                    disabled={!amount || amount <= 0 || withdraw.isPending}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {withdraw.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Withdrawing...
+                      </>
+                    ) : (
+                      "Withdraw"
+                    )}
+                  </Button>
+
+                  <AllowanceCheck
+                    tokenAddress={vault?.token?.address!}
+                    amount={amountInWei}
+                    spender={id!}
+                  >
+                    <Button
+                      onClick={() => {
+                        fund.mutate(amountInWei);
+                        setAmount(null);
+                      }}
+                      disabled={!amount || amount <= 0 || fund.isPending}
+                      variant="secondary"
+                      className="w-full"
+                    >
+                      {fund.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Funding...
+                        </>
+                      ) : (
+                        "Fund (No Shares)"
+                      )}
+                    </Button>
+                  </AllowanceCheck>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Contributions receive shares proportional to the vault's
+                  current value. Funding provides direct support without
+                  receiving shares.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </Page>
   );
 }

@@ -8,6 +8,7 @@ import { burner } from "burner-connector";
 import { HypercertsProvider } from "@workspace/sdk";
 import { hardhat } from "viem/chains";
 import { baseSepolia } from "@account-kit/infra";
+import { MapProvider } from "react-map-gl/mapbox";
 
 const defaultChain = hardhat;
 const config = createConfig({
@@ -22,11 +23,13 @@ const config = createConfig({
 export function Providers({ children }: PropsWithChildren) {
   const queryClient = new QueryClient();
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <Hypercerts>{children}</Hypercerts>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <MapProvider>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <Hypercerts>{children}</Hypercerts>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </MapProvider>
   );
 }
 

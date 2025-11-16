@@ -26,6 +26,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@workspace/ui/components/card";
+import { formatMoney } from "@/lib/format";
 
 const color1 = "#22c55e";
 const color2 = "#3b82f6";
@@ -188,7 +189,11 @@ function SingleTreemap({
                           fontSize={11}
                           pointerEvents="none"
                         >
-                          {formatUnits(BigInt(node.value ?? 0), 18)} USDC
+                          {formatMoney(
+                            Number(formatUnits(BigInt(node.value ?? 0), 18)),
+                            "USD",
+                            0
+                          )}
                         </text>
                       </>
                     )}
