@@ -27,9 +27,8 @@ import {
   Globe,
   MapPin,
   Leaf,
-  Users,
-  DollarSign,
   Loader2,
+  ArrowRightLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ContributorsTreemap } from "../vault/contributors-treemap";
@@ -157,7 +156,7 @@ export function RegionDetails({ id }: { id: Address }) {
   const regionId = metadata?.regionId;
 
   const isLoading = isLoadingVault || isLoadingBalance;
-
+  console.log({ amountInWei });
   if (vaultError) {
     return (
       <div className="min-h-screen bg-background">
@@ -265,37 +264,14 @@ export function RegionDetails({ id }: { id: Address }) {
           {/* Contributors Treemap */}
           <ContributorsTreemap id={id} />
 
-          {/* Contributors List */}
-          <Card className="border border-border">
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Contributors
-              </CardTitle>
-              <CardDescription>
-                People who have contributed to this region
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ContributorsList id={id} />
-            </CardContent>
-          </Card>
-
-          {/* Funders List */}
-          <Card className="border border-border">
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
-                Funders
-              </CardTitle>
-              <CardDescription>
-                Organizations and individuals funding this region
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FundersList id={id} />
-            </CardContent>
-          </Card>
+          {/* Contributors & Funders */}
+          <div
+            className="
+        "
+          >
+            <ContributorsList id={id} />
+            <FundersList id={id} />
+          </div>
         </div>
 
         {/* Right Column - Actions & Stats (Sticky Sidebar) */}
@@ -432,6 +408,32 @@ export function RegionDetails({ id }: { id: Address }) {
                 </p>
               </CardContent>
             </Card>
+
+            {/* Distribute Funds Card - Only for owners */}
+            {address && vault?.owner === address.toLowerCase() && (
+              <Card className="border border-border bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <ArrowRightLeft className="w-5 h-5" />
+                    Distribute Funds
+                  </CardTitle>
+                  <CardDescription>
+                    Transfer funds to project vaults
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link href={`/regions/${id}/distribute`}>
+                    <Button variant="default" className="w-full">
+                      Open Distribution Flow
+                    </Button>
+                  </Link>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    As the vault owner, you can distribute funds to multiple
+                    project vaults using an interactive flow interface.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

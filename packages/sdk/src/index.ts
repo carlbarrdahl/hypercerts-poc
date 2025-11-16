@@ -104,6 +104,11 @@ export type VaultMethods = {
 	) => Promise<any>;
 	payout: (id: Address, amount: bigint, recipient: Address) => Promise<any>;
 	mintShares: (id: Address, recipient: Address, shares: bigint) => Promise<any>;
+	depositToVault: (
+		fromVaultId: Address,
+		toVaultId: Address,
+		amount: bigint,
+	) => Promise<any>;
 	balance: (
 		id: Address,
 	) => Promise<{ assets: bigint; shares: bigint; price: bigint }>;
@@ -279,6 +284,16 @@ export class HypercertsSDK {
 					args: [recipient, shares],
 					abi: this.#abi.HyperVault,
 					eventName: 'SharesMinted',
+				});
+			},
+			depositToVault: async (fromVaultId, toVaultId, amount) => {
+				const contract = this.#vault(getAddress(fromVaultId));
+				return this.#simulateWriteAndFindEvent({
+					contract,
+					functionName: 'depositToVault',
+					args: [toVaultId, amount],
+					abi: this.#abi.HyperVault,
+					eventName: 'DepositedToVault',
 				});
 			},
 			balance: async (id) => {

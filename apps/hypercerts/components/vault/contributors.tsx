@@ -19,7 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-
+import { truncate } from "@/lib/truncate";
 export function ContributorsList({ id }: { id: Address }) {
   const { sdk } = useHypercerts();
   const { data, error, isPending, isRefetching } = useListContributors(
@@ -63,7 +63,7 @@ export function ContributorsList({ id }: { id: Address }) {
               <TableRow>
                 <TableHead>Address</TableHead>
                 <TableHead className="text-right">Shares</TableHead>
-                <TableHead className="text-right">Assets</TableHead>
+                {/* <TableHead className="text-right">Assets</TableHead> */}
                 <TableHead className="text-right">Value</TableHead>
               </TableRow>
             </TableHeader>
@@ -77,7 +77,7 @@ export function ContributorsList({ id }: { id: Address }) {
                 return (
                   <TableRow key={i}>
                     <TableCell className="font-mono text-sm">
-                      {item.address}
+                      {truncate(item.address)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div>
@@ -89,9 +89,9 @@ export function ContributorsList({ id }: { id: Address }) {
                           : "--"}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    {/* <TableCell className="text-right">
                       <Amount amount={item.assets} />
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell className="text-right">
                       <Amount
                         amount={shares * price}

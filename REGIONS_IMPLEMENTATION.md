@@ -1,7 +1,9 @@
 # Regions Implementation Summary
 
 ## Overview
+
 Built a complete regions feature for the Hypercerts app, including:
+
 - Regions list page with filtering
 - Detailed region pages with interactive maps
 - Seed script for 5 representative bioregions
@@ -10,7 +12,9 @@ Built a complete regions feature for the Hypercerts app, including:
 ## Files Created/Modified
 
 ### 1. Seed Script
+
 **File:** `packages/contracts/scripts/seed-regions.ts`
+
 - Creates 5 bioregion vaults with realistic data
 - Includes 5 representative regions:
   1. **Northern Amazonian Forests (NT20)** - Capybara
@@ -24,7 +28,9 @@ Built a complete regions feature for the Hypercerts app, including:
   - Full metadata: title, description, image, geoJSON URL, iconic species, region ID
 
 ### 2. Map Component
+
 **File:** `apps/hypercerts/components/map.tsx`
+
 - Integrated Mapbox GL with react-map-gl
 - Auto-fits bounds to show full region
 - Custom styling for bioregion visualization
@@ -32,7 +38,9 @@ Built a complete regions feature for the Hypercerts app, including:
 - Uses outdoor map style for natural areas
 
 ### 3. Region Details Component
+
 **File:** `apps/hypercerts/components/region/details.tsx`
+
 - Comprehensive region detail page with:
   - Hero section with banner image
   - Region metadata (iconic species, region ID)
@@ -46,7 +54,9 @@ Built a complete regions feature for the Hypercerts app, including:
 - Loading and error states
 
 ### 4. Regions List Page
+
 **File:** `apps/hypercerts/app/regions/page.tsx`
+
 - Filters vaults to show only regions (type="region")
 - Card-based grid layout (responsive: 1/2/3 columns)
 - Each card shows:
@@ -59,8 +69,10 @@ Built a complete regions feature for the Hypercerts app, including:
 - Empty state with helpful messaging
 
 ### 5. Package Dependencies
+
 **File:** `apps/hypercerts/package.json`
 Added required dependencies:
+
 - `mapbox-gl`: ^3.15.0
 - `react-map-gl`: ^8.0.4
 - `@turf/bbox`: ^7.2.0
@@ -69,6 +81,7 @@ Added required dependencies:
 ## Data Structure
 
 ### Region Metadata Schema
+
 ```typescript
 {
   type: "region",
@@ -83,7 +96,9 @@ Added required dependencies:
 ```
 
 ### Vault Structure
+
 Each region vault includes:
+
 - Parent: `zeroAddress` (top-level vaults)
 - Asset: Test token address
 - Owner: Region creator address
@@ -94,6 +109,7 @@ Each region vault includes:
 ## Usage
 
 ### Running the Seed Script
+
 ```bash
 cd packages/contracts
 bun run scripts/seed-regions.ts
@@ -102,12 +118,14 @@ npx tsx scripts/seed-regions.ts
 ```
 
 ### Installing Dependencies
+
 ```bash
 cd apps/hypercerts
 pnpm install
 ```
 
 ### Viewing Regions
+
 1. Navigate to `/regions` to see all bioregion vaults
 2. Click on any region card to view full details
 3. Interactive map shows the geographic boundaries
@@ -116,6 +134,7 @@ pnpm install
 ## Key Features
 
 ### Map Integration
+
 - Uses Mapbox GL for professional map rendering
 - Fetches KML data from OneEarth.org
 - Converts KML to GeoJSON on the fly
@@ -123,12 +142,14 @@ pnpm install
 - Green color scheme for natural areas
 
 ### Data Visualization
+
 - Contributors treemap shows proportional contributions
 - Separate visualizations for contributors vs funders
 - Lists with address truncation and amounts
 - Real-time data updates (1 second refresh)
 
 ### User Actions
+
 - **Contribute**: Deposit tokens and receive shares
 - **Withdraw**: Redeem shares for tokens
 - **Fund**: Donate tokens without receiving shares
@@ -136,6 +157,7 @@ pnpm install
 - Success/error toast notifications
 
 ### Responsive Design
+
 - Mobile-first approach
 - Flexible grid layouts
 - Stacked columns on mobile
@@ -145,12 +167,14 @@ pnpm install
 ## Technical Details
 
 ### Map Configuration
+
 - Provider: Mapbox (requires `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`)
 - Style: `outdoors-v12` (optimized for natural areas)
 - Initial view: Centered on region with padding
 - Layers: Fill (30% opacity green) + Line (solid green border)
 
 ### Data Flow
+
 1. Seed script creates vaults with metadata
 2. Indexer picks up vault creation events
 3. Frontend queries indexed data via SDK
@@ -159,6 +183,7 @@ pnpm install
 6. Map renders GeoJSON boundaries
 
 ### Performance
+
 - Refetch interval: 1 second for real-time updates
 - KML caching via React Query
 - Image optimization with Next.js
@@ -175,6 +200,7 @@ Get a free Mapbox token at: https://www.mapbox.com/
 ## Future Enhancements
 
 Potential improvements:
+
 - [ ] Add region comparison view
 - [ ] Implement region search/filter
 - [ ] Show child projects within regions
@@ -189,6 +215,7 @@ Potential improvements:
 ## Testing
 
 To test the implementation:
+
 1. Deploy contracts to local hardhat node
 2. Run seed-regions script to create test data
 3. Start the indexer to index the vaults
@@ -212,4 +239,3 @@ To test the implementation:
 - GeoJSON URLs point to OneEarth.org KML files
 - Images are hosted on TakeShape CDN
 - Region IDs follow OneEarth Framework naming (e.g., NT20, PA3)
-

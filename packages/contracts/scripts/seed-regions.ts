@@ -90,9 +90,13 @@ const bioregionTemplates = [
 ];
 
 async function main() {
-  // Use hardhat accounts for different roles
+  // Custom owner address
+  const ownerAddress =
+    "0x79837AAc6631a242d371CE1755fF25f4B050FFA7" as `0x${string}`;
+
+  // Use hardhat accounts for funders and contributors
   const accounts = [
-    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Account #0 - Region Creator
+    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Account #0 - For transactions
     "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // Account #1 - Funder 1
     "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", // Account #2 - Funder 2
     "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6", // Account #3 - Funder 3
@@ -123,7 +127,8 @@ async function main() {
     .map((key) => privateKeyToAccount(key as `0x${string}`));
 
   console.log("🌍 Seeding bioregion vaults with accounts:");
-  console.log("  Region Creator:", regionCreator.address);
+  console.log("  Vault Owner (custom):", ownerAddress);
+  console.log("  Transaction Account:", regionCreator.address);
   console.log(
     `  Funders (${funders.length}):`,
     funders.map((f) => f.address)
@@ -230,7 +235,7 @@ async function main() {
     // Create bioregion vault
     console.log(`Creating vault for: ${region.name}`);
     const vaultAddress = await creatorSDK.vault.create({
-      owner: regionCreator.address,
+      owner: ownerAddress,
       parent: zeroAddress,
       asset: tokenAddress,
       percent: 0n,
@@ -248,40 +253,6 @@ async function main() {
     });
 
     console.log(`  ✅ Vault created: ${vaultAddress}`);
-
-    // Create funds (5 funders with larger amounts)
-    console.log(`\n  🎁 Creating funds from ${funders.length} funders...`);
-
-    // Varying fund amounts (20,000 - 100,000 tokens)
-    const fundAmounts = [
-      100000n * 10n ** 18n, // 100,000 tokens
-      75000n * 10n ** 18n, // 75,000 tokens
-      50000n * 10n ** 18n, // 50,000 tokens
-      35000n * 10n ** 18n, // 35,000 tokens
-      20000n * 10n ** 18n, // 20,000 tokens
-    ];
-
-    for (let f = 0; f < funders.length; f++) {
-      try {
-        const wallet = funderWallets[f];
-        const sdk = funderSDKs[f];
-        const amount = fundAmounts[f];
-
-        await mintAndApprove(wallet, amount, vaultAddress);
-        await sdk.vault.fund(vaultAddress, amount);
-
-        console.log(
-          `    ✅ Fund from Funder ${f + 1}: ${amount / 10n ** 18n} tokens`
-        );
-        totalFunds++;
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      } catch (error) {
-        console.error(
-          `    ❌ Failed to create fund from Funder ${f + 1}:`,
-          error
-        );
-      }
-    }
 
     // Create contributions (10-15 contributors with smaller amounts)
     const numContributors = 10 + Math.floor(Math.random() * 6); // 10-15 contributors
@@ -325,6 +296,39 @@ async function main() {
       } catch (error) {
         console.error(
           `    ❌ Failed to create contribution from Contributor ${c + 1}:`,
+          error
+        );
+      }
+    }
+    // Create funds (5 funders with larger amounts)
+    console.log(`\n  🎁 Creating funds from ${funders.length} funders...`);
+
+    // Varying fund amounts (20,000 - 100,000 tokens)
+    const fundAmounts = [
+      100000n * 10n ** 18n, // 100,000 tokens
+      75000n * 10n ** 18n, // 75,000 tokens
+      50000n * 10n ** 18n, // 50,000 tokens
+      35000n * 10n ** 18n, // 35,000 tokens
+      20000n * 10n ** 18n, // 20,000 tokens
+    ];
+
+    for (let f = 0; f < funders.length; f++) {
+      try {
+        const wallet = funderWallets[f];
+        const sdk = funderSDKs[f];
+        const amount = fundAmounts[f];
+
+        await mintAndApprove(wallet, amount, vaultAddress);
+        await sdk.vault.fund(vaultAddress, amount);
+
+        console.log(
+          `    ✅ Fund from Funder ${f + 1}: ${amount / 10n ** 18n} tokens`
+        );
+        totalFunds++;
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      } catch (error) {
+        console.error(
+          `    ❌ Failed to create fund from Funder ${f + 1}:`,
           error
         );
       }

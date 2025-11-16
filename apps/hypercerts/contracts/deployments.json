@@ -279,6 +279,31 @@
             {
               "indexed": true,
               "internalType": "address",
+              "name": "targetVault",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "assets",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "shares",
+              "type": "uint256"
+            }
+          ],
+          "name": "DepositedToVault",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
               "name": "sender",
               "type": "address"
             },
@@ -636,6 +661,30 @@
             {
               "internalType": "uint256",
               "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "targetVault",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "assets",
+              "type": "uint256"
+            }
+          ],
+          "name": "depositToVault",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "shares",
               "type": "uint256"
             }
           ],

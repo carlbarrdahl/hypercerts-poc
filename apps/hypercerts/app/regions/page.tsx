@@ -85,7 +85,8 @@ export default function RegionsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {regions.map((region) => {
                   const metadata = region.metadata as Record<string, any>;
-                  const title = metadata?.title || `Region ${region.id.slice(0, 8)}...`;
+                  const title =
+                    metadata?.title || `Region ${region.id.slice(0, 8)}...`;
                   const description = metadata?.description || "";
                   const image = metadata?.image;
                   const iconicSpecies = metadata?.iconicSpecies;

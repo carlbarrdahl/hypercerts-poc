@@ -85,6 +85,26 @@ ponder.on("HyperVault:Deposit", async ({ event, context }) => {
       assets: (row.assets ?? 0n) + BigInt(assets),
       updatedAt: toTimestamp(event.block.timestamp),
     }));
+
+  // Track depositors as contributors (they received shares for their assets)
+  await context.db
+    .insert(contributor)
+    .values({
+      id: event.id,
+      vault: id,
+      address: owner,
+      assets,
+      shares,
+      token,
+      createdAt: toTimestamp(event.block.timestamp),
+    })
+    .onConflictDoUpdate((row) => ({
+      address: owner,
+      vault: id,
+      assets: (row.assets ?? 0n) + BigInt(assets),
+      shares: (row.shares ?? 0n) + BigInt(shares),
+      updatedAt: toTimestamp(event.block.timestamp),
+    }));
 });
 
 ponder.on("HyperVault:Withdraw", async ({ event, context }) => {

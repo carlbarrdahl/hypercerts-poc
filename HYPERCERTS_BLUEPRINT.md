@@ -99,3 +99,4 @@ Shares from deposits and shares from minted rewards coexist, so both funders and
 6. **Role flows:** Ensure funders can deposit and see shares, contributors can request/mint shares after work, and evaluators can verify claims—all referencing the same vault primitive.
 
 With these pieces, you can recreate the Hypercerts MVP: reusable ERC4626 vaults for any geo-tagged initiative, an attestation-based evidence graph, and share-based proofs for both capital and labor contributions.
+

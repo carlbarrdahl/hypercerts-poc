@@ -44,6 +44,7 @@ export function LoginButton() {
   const account = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
+  console.log("account", account?.address);
   if (account.isConnected) {
     return (
       <div className="flex items-center gap-2">

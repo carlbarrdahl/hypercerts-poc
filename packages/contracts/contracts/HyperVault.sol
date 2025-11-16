@@ -68,6 +68,12 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
 
     event SharesMinted(address indexed recipient, uint256 shares);
 
+    event DepositedToVault(
+        address indexed targetVault,
+        uint256 assets,
+        uint256 shares
+    );
+
     constructor() {
         _disableInitializers();
     }
@@ -114,6 +120,40 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
 
         _mint(recipient, shares);
         emit SharesMinted(recipient, shares);
+    }
+
+    /**
+     * @notice Deposit assets from this vault to another vault
+     * @dev Owner can distribute funds to other vaults (e.g., from region to projects)
+     * @param targetVault Address of the vault to deposit to
+     * @param assets Amount of assets to deposit
+     * @return shares Number of shares received from the target vault
+     */
+    function depositToVault(
+        address targetVault,
+        uint256 assets
+    ) external nonReentrant returns (uint256 shares) {
+        require(msg.sender == config.owner, "HyperVault: only owner");
+        require(targetVault != address(0), "HyperVault: zero address");
+        require(
+            targetVault != address(this),
+            "HyperVault: cannot deposit to self"
+        );
+        require(assets > 0, "HyperVault: zero assets");
+        require(
+            assets <= IERC20(asset()).balanceOf(address(this)),
+            "HyperVault: insufficient balance"
+        );
+
+        // Approve the target vault to spend our assets
+        IERC20(asset()).approve(targetVault, assets);
+
+        // Call deposit on the target vault, receiving shares to this vault
+        shares = HyperVault(targetVault).deposit(assets, address(this));
+
+        emit DepositedToVault(targetVault, assets, shares);
+
+        return shares;
     }
 
     /**

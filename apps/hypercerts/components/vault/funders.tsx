@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
+import { truncate } from "@/lib/truncate";
 
 export function FundersList({ id }: { id: Address }) {
   const { sdk } = useHypercerts();
@@ -66,7 +67,7 @@ export function FundersList({ id }: { id: Address }) {
                 return (
                   <TableRow key={i}>
                     <TableCell className="font-mono text-sm">
-                      {item.address}
+                      {truncate(item.address)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Amount
