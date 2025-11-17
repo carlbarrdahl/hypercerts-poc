@@ -26,7 +26,7 @@ export function BannerImage({
       )}
     >
       {src ? (
-        <img src={src} alt={alt} className="object-cover" />
+        <img src={src} alt={alt} className="object-cover w-full" />
       ) : (
         <div className="bg-muted w-full h-full" />
       )}

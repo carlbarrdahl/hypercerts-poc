@@ -464,6 +464,7 @@ function CreateAttestationDialog({
           toast.success("Attestation created successfully");
           queryClient.invalidateQueries({ queryKey: ["attestations"] });
           form.reset();
+          setResources([]);
           onClose();
         },
         onError: (error) => {
@@ -475,98 +476,143 @@ function CreateAttestationDialog({
   };
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create Attestation</DialogTitle>
-          <DialogDescription>
-            Create a new attestation for this vault
-          </DialogDescription>
-        </DialogHeader>
+    <Sheet open={true} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="w-full sm:w-[700px] sm:max-w-[90vw] overflow-y-auto p-0">
+        <div className="px-6 pt-6 pb-4 border-b bg-muted/20 sticky top-0 z-10">
+          <SheetHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Plus className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <SheetTitle>Create Attestation</SheetTitle>
+                <SheetDescription>
+                  Create a new attestation for this vault
+                </SheetDescription>
+              </div>
+            </div>
+          </SheetHeader>
+        </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select attestation type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="milestone">Milestone</SelectItem>
-                      <SelectItem value="work-claim">Work Claim</SelectItem>
-                      <SelectItem value="verification">Verification</SelectItem>
-                      <SelectItem value="endorsement">Endorsement</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    The type of attestation you want to create
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 px-6 py-6"
+          >
+            {/* Attestation Type Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  Attestation Type
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Choose the type of attestation you want to create
+                </p>
+              </div>
 
-            {isWorkClaim && (
               <FormField
                 control={form.control}
-                name="refUID"
+                name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Related Milestone (Optional)</FormLabel>
+                    <FormLabel>Type *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a milestone" />
+                          <SelectValue placeholder="Select attestation type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {milestones.length === 0 ? (
-                          <SelectItem value="" disabled>
-                            No milestones available
-                          </SelectItem>
-                        ) : (
-                          milestones.map((milestone) => {
-                            const parsed = milestone.decodedParsed as any;
-                            const metadata =
-                              typeof parsed.metadata === "string"
-                                ? JSON.parse(parsed.metadata)
-                                : parsed.metadata;
-                            return (
-                              <SelectItem
-                                key={milestone.id}
-                                value={milestone.id}
-                              >
-                                {metadata?.title || "Untitled Milestone"}
-                              </SelectItem>
-                            );
-                          })
-                        )}
+                        <SelectItem value="milestone">Milestone</SelectItem>
+                        <SelectItem value="work-claim">Work Claim</SelectItem>
+                        <SelectItem value="verification">
+                          Verification
+                        </SelectItem>
+                        <SelectItem value="endorsement">Endorsement</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>
-                      Link this work claim to a specific milestone
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Work Claim Reference Section */}
+            {isWorkClaim && (
+              <div className="space-y-4 p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Link to Milestone
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Optionally connect this work claim to a milestone
+                  </p>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="refUID"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Related Milestone</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a milestone" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {milestones.length === 0 ? (
+                            <SelectItem value="" disabled>
+                              No milestones available
+                            </SelectItem>
+                          ) : (
+                            milestones.map((milestone) => {
+                              const parsed = milestone.decodedParsed as any;
+                              const metadata =
+                                typeof parsed.metadata === "string"
+                                  ? JSON.parse(parsed.metadata)
+                                  : parsed.metadata;
+                              return (
+                                <SelectItem
+                                  key={milestone.id}
+                                  value={milestone.id}
+                                >
+                                  {metadata?.title || "Untitled Milestone"}
+                                </SelectItem>
+                              );
+                            })
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Link this work claim to a specific milestone
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             )}
 
+            {/* Verification Section */}
             {isVerification && (
-              <>
+              <div className="space-y-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Verification Details
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select the work claim and verification result
+                  </p>
+                </div>
+
                 <FormField
                   control={form.control}
                   name="refUID"
@@ -650,307 +696,357 @@ function CreateAttestationDialog({
                     </FormItem>
                   )}
                 />
-              </>
+              </div>
             )}
 
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Attestation title" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Attestation description"
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="image"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://example.com/image.jpg"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    URL to an image associated with this attestation
-                  </FormDescription>
-                  {field.value && (
-                    <div className="mt-2 rounded-lg overflow-hidden border">
-                      <img
-                        src={field.value}
-                        alt="Preview"
-                        className="w-full h-auto max-h-48 object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    </div>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="geoJSON"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>GeoJSON URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://example.com/geojson.json"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    URL to a GeoJSON file for location-based attestations
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Resources / Supporting Documents Section */}
-            <div className="space-y-3 border-t pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium">
-                    Supporting Documents
-                  </label>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Add evidence, reports, or other supporting materials
-                  </p>
-                </div>
-                {!showResourceForm && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowResourceForm(true)}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Document
-                  </Button>
-                )}
+            {/* Basic Information Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  Basic Information
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Provide the core details for this attestation
+                </p>
               </div>
 
-              {/* Existing Resources List */}
-              {resources.length > 0 && (
-                <div className="space-y-2">
-                  {resources.map((resource, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start justify-between p-3 bg-muted/30 rounded-lg border"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">
-                          {resource.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {resource.src}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {resource.mime}
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeResource(index)}
-                        className="ml-2 h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter attestation title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              {/* Add Resource Form */}
-              {showResourceForm && (
-                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border">
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Provide details about this attestation..."
+                        rows={4}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Supports Markdown formatting
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Media & Attachments Section */}
+            <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  Media & Attachments
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Add images, geographic data, and supporting documents
+                </p>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="image"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Image URL</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="url"
+                        placeholder="https://example.com/image.jpg"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      URL to an image associated with this attestation
+                    </FormDescription>
+                    {field.value && (
+                      <div className="mt-2 rounded-lg overflow-hidden border">
+                        <img
+                          src={field.value}
+                          alt="Preview"
+                          className="w-full h-auto max-h-48 object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                      </div>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="geoJSON"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>GeoJSON URL</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="url"
+                        placeholder="https://example.com/geojson.json"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      URL to a GeoJSON file for location-based attestations
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Resources / Supporting Documents */}
+              <div className="space-y-3 border-t pt-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-xs font-medium mb-1.5 block">
-                      Document Title *
+                    <label className="text-sm font-medium">
+                      Supporting Documents
                     </label>
-                    <Input
-                      placeholder="E.g., Site Assessment Report"
-                      value={newResource.title}
-                      onChange={(e) =>
-                        setNewResource({
-                          ...newResource,
-                          title: e.target.value,
-                        })
-                      }
-                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Add evidence, reports, or other supporting materials
+                    </p>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1.5 block">
-                      Document URL *
-                    </label>
-                    <Input
-                      type="url"
-                      placeholder="https://example.com/document.pdf"
-                      value={newResource.src}
-                      onChange={(e) =>
-                        setNewResource({ ...newResource, src: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1.5 block">
-                      Document Type *
-                    </label>
-                    <Select
-                      value={newResource.mime}
-                      onValueChange={(value) =>
-                        setNewResource({ ...newResource, mime: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="application/pdf">
-                          PDF Document
-                        </SelectItem>
-                        <SelectItem value="image/jpeg">JPEG Image</SelectItem>
-                        <SelectItem value="image/png">PNG Image</SelectItem>
-                        <SelectItem value="image/webp">WebP Image</SelectItem>
-                        <SelectItem value="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-                          Excel Spreadsheet
-                        </SelectItem>
-                        <SelectItem value="text/csv">CSV File</SelectItem>
-                        <SelectItem value="application/geo+json">
-                          GeoJSON
-                        </SelectItem>
-                        <SelectItem value="text/html">HTML Page</SelectItem>
-                        <SelectItem value="application/zip">
-                          ZIP Archive
-                        </SelectItem>
-                        <SelectItem value="video/mp4">MP4 Video</SelectItem>
-                        <SelectItem value="application/json">
-                          JSON Data
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex gap-2">
+                  {!showResourceForm && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setShowResourceForm(false);
-                        setNewResource({
-                          title: "",
-                          src: "",
-                          mime: "application/pdf",
-                        });
-                      }}
+                      onClick={() => setShowResourceForm(true)}
                     >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={addResource}
-                      disabled={
-                        !newResource.title ||
-                        !newResource.src ||
-                        !newResource.mime
-                      }
-                    >
+                      <Plus className="w-4 h-4 mr-2" />
                       Add Document
                     </Button>
-                  </div>
+                  )}
                 </div>
-              )}
+
+                {/* Existing Resources List */}
+                {resources.length > 0 && (
+                  <div className="space-y-2">
+                    {resources.map((resource, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start justify-between p-3 bg-background rounded-lg border"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">
+                            {resource.title}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {resource.src}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {resource.mime}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeResource(index)}
+                          className="ml-2 h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add Resource Form */}
+                {showResourceForm && (
+                  <div className="space-y-3 p-4 bg-background rounded-lg border">
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block">
+                        Document Title *
+                      </label>
+                      <Input
+                        placeholder="E.g., Site Assessment Report"
+                        value={newResource.title}
+                        onChange={(e) =>
+                          setNewResource({
+                            ...newResource,
+                            title: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block">
+                        Document URL *
+                      </label>
+                      <Input
+                        type="url"
+                        placeholder="https://example.com/document.pdf"
+                        value={newResource.src}
+                        onChange={(e) =>
+                          setNewResource({
+                            ...newResource,
+                            src: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block">
+                        Document Type *
+                      </label>
+                      <Select
+                        value={newResource.mime}
+                        onValueChange={(value) =>
+                          setNewResource({ ...newResource, mime: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="application/pdf">
+                            PDF Document
+                          </SelectItem>
+                          <SelectItem value="image/jpeg">JPEG Image</SelectItem>
+                          <SelectItem value="image/png">PNG Image</SelectItem>
+                          <SelectItem value="image/webp">WebP Image</SelectItem>
+                          <SelectItem value="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                            Excel Spreadsheet
+                          </SelectItem>
+                          <SelectItem value="text/csv">CSV File</SelectItem>
+                          <SelectItem value="application/geo+json">
+                            GeoJSON
+                          </SelectItem>
+                          <SelectItem value="text/html">HTML Page</SelectItem>
+                          <SelectItem value="application/zip">
+                            ZIP Archive
+                          </SelectItem>
+                          <SelectItem value="video/mp4">MP4 Video</SelectItem>
+                          <SelectItem value="application/json">
+                            JSON Data
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowResourceForm(false);
+                          setNewResource({
+                            title: "",
+                            src: "",
+                            mime: "application/pdf",
+                          });
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={addResource}
+                        disabled={
+                          !newResource.title ||
+                          !newResource.src ||
+                          !newResource.mime
+                        }
+                      >
+                        Add Document
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <FormField
-              control={form.control}
-              name="visibility"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Visibility</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select visibility" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="private">Private</SelectItem>
-                      <SelectItem value="organization">Organization</SelectItem>
-                      <SelectItem value="draft">Public Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Private: Visible only to creator. Organization: Visible
-                    within organizations. Draft: Public review before
-                    publication. Published: Permanently published to EAS.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Visibility & Publishing Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  Visibility & Publishing
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Control who can view this attestation
+                </p>
+              </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                isLoading={isPending}
-                loadingText="Creating..."
-              >
-                Create Attestation
-              </Button>
-            </DialogFooter>
+              <FormField
+                control={form.control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Visibility *</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select visibility" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="private">Private</SelectItem>
+                        <SelectItem value="organization">
+                          Organization
+                        </SelectItem>
+                        <SelectItem value="draft">Public Draft</SelectItem>
+                        <SelectItem value="published">Published</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Private: Visible only to creator. Organization: Visible
+                      within organizations. Draft: Public review before
+                      publication. Published: Permanently published to EAS.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+
+        <div className="px-6 py-4 border-t bg-muted/20 sticky bottom-0">
+          <SheetFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isPending}
+              className="flex-1 sm:flex-initial"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              onClick={form.handleSubmit(onSubmit)}
+              isLoading={isPending}
+              loadingText="Creating..."
+              className="flex-1 sm:flex-initial"
+            >
+              Create Attestation
+            </Button>
+          </SheetFooter>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

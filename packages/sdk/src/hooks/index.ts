@@ -9,6 +9,8 @@ import {
 import { HyperVaultConfig } from '..';
 import {
 	ContributorsVariables,
+	FunderVariables,
+	FundingVariables,
 	VaultPage,
 	VaultsVariables,
 } from '../lib/indexer';
@@ -77,13 +79,25 @@ export function useListContributors(
 }
 
 export function useListFunders(
-	variables: ContributorsVariables,
+	variables: FunderVariables,
 	opts?: Opts,
 ): UseQueryResult<ContributorPage | null | undefined, Error> {
 	const { sdk } = useHypercerts();
 	return useQuery({
 		queryKey: ['funders', { variables }],
 		queryFn: () => sdk?.indexer.funder.query(variables) ?? null,
+		...opts,
+	});
+}
+
+export function useListFunding(
+	variables: FundingVariables,
+	opts?: Opts,
+): UseQueryResult<ContributorPage | null | undefined, Error> {
+	const { sdk } = useHypercerts();
+	return useQuery({
+		queryKey: ['funding', { variables }],
+		queryFn: () => sdk?.indexer.funding.query(variables) ?? null,
 		...opts,
 	});
 }
@@ -104,8 +118,6 @@ export function useHypercertsAttestations(
 	opts?: Opts,
 ): UseQueryResult<AttestationPage | null | undefined, Error> {
 	const { sdk } = useHypercerts();
-
-	console.log('sdk', query);
 	return useQuery({
 		queryKey: ['attestations', query],
 		queryFn: async () => sdk?.indexer.attestation.query(query),

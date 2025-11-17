@@ -146,7 +146,7 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
 
         // Approve the target vault to spend our assets
         IERC20(asset()).approve(targetVault, assets);
-
+        emit DepositedToVault(targetVault, assets, 0);
         // Call fund on the target vault, receiving shares to this vault
         HyperVault(targetVault).fund(assets, address(this));
     }

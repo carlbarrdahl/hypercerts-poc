@@ -11,10 +11,12 @@ export function AllowanceCheck({
   amount = BigInt(0),
   tokenAddress,
   spender,
+  className,
 }: PropsWithChildren<{
   amount?: bigint;
   tokenAddress: Address;
   spender: Address;
+  className?: string;
 }>) {
   const { address, isConnected } = useAccount();
 
@@ -24,7 +26,11 @@ export function AllowanceCheck({
 
   // console.log(allowance.data, spender, tokenAddress);
   if (tokenAddress === zeroAddress) {
-    return <BalanceCheck amount={amount}>{children}</BalanceCheck>;
+    return (
+      <BalanceCheck amount={amount} className={className}>
+        {children}
+      </BalanceCheck>
+    );
   }
   if (!isConnected) return null;
   if (token.isPending || allowance.isPending) return <Button isLoading />;
@@ -35,6 +41,7 @@ export function AllowanceCheck({
         type="button"
         isLoading={approve.isPending}
         onClick={() => approve.writeContractAsync(amount)}
+        className={className}
       >
         Approve <TokenAmount amount={amount} token={tokenAddress} />
       </Button>
@@ -43,7 +50,7 @@ export function AllowanceCheck({
 
   if ((token.data?.balance ?? BigInt(0)) <= amount) {
     return (
-      <Button disabled variant="ghost">
+      <Button disabled variant="ghost" className={className}>
         Insufficient balance
       </Button>
     );

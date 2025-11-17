@@ -423,6 +423,11 @@ export class HypercertsSDK {
 			});
 			const logs = parseEventLogs({ abi, logs: receipt.logs });
 			const event: any = logs.find((log: any) => log.eventName === eventName);
+			
+			if (!event) {
+				throw new Error(`Event ${eventName} not found in transaction logs`);
+			}
+			
 			return event.args as T;
 		} catch (err: any) {
 			if (err instanceof BaseError) {

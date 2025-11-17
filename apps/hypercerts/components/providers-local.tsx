@@ -9,6 +9,7 @@ import { HypercertsProvider } from "@workspace/sdk";
 import { hardhat } from "viem/chains";
 import { baseSepolia } from "@account-kit/infra";
 import { MapProvider } from "react-map-gl/mapbox";
+import { Toaster } from "@workspace/ui/components/sonner";
 
 const defaultChain = hardhat;
 const config = createConfig({
@@ -29,6 +30,7 @@ export function Providers({ children }: PropsWithChildren) {
           <Hypercerts>{children}</Hypercerts>
         </QueryClientProvider>
       </WagmiProvider>
+      <Toaster />
     </MapProvider>
   );
 }

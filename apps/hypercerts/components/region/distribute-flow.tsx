@@ -43,7 +43,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
-import { Loader2, Plus, ArrowRight } from "lucide-react";
+import { Loader2, Plus, ArrowRight, Search, XIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -201,17 +201,15 @@ function ProjectNode({ data }: { data: ProjectNodeData }) {
               className="h-8 text-sm"
             />
           </div>
-          {hasAmount && (
-            <div className="text-xs text-green-600 font-medium">
-              → {data.amount} {data.tokenSymbol}
-            </div>
-          )}
-          <button
+
+          <Button
+            icon={XIcon}
+            size="icon"
+            tabIndex={-1}
             onClick={data.onRemove}
-            className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
-          >
-            Remove
-          </button>
+            variant="link"
+            className=" absolute top-1 right-1 rounded-full"
+          ></Button>
         </div>
       </div>
       <Handle type="source" position={Position.Right} className="opacity-0" />
@@ -230,6 +228,7 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
   const { sdk } = useHypercerts();
   const [distributions, setDistributions] = useState<ProjectDistribution[]>([]);
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch region vault
   const {
@@ -262,6 +261,18 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
         v.id.toLowerCase() !== regionVaultId.toLowerCase()
     );
   }, [allVaults, regionVaultId]);
+
+  // Filter projects based on search query
+  const filteredProjectVaults = useMemo(() => {
+    if (!searchQuery.trim()) return projectVaults;
+    const query = searchQuery.toLowerCase();
+    return projectVaults.filter((project) => {
+      const metadata = project.metadata as Record<string, any> | undefined;
+      const title = metadata?.title?.toLowerCase() || "";
+      const description = metadata?.description?.toLowerCase() || "";
+      return title.includes(query) || description.includes(query);
+    });
+  }, [projectVaults, searchQuery]);
 
   // Get balances for selected projects
   const selectedProjectIds = distributions.map((d) => d.vaultId);
@@ -371,6 +382,8 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
       queryClient.invalidateQueries({ queryKey: [] });
       toast.success("Funds distributed successfully!");
       setDistributions([]);
+      setNodes([]);
+      setEdges([]);
     },
     onError: (error) => {
       toast.error("Distribution failed", {
@@ -543,226 +556,240 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
 
   if (vaultError) {
     return (
-      <Page title="Back to region" backLink={`/regions/${regionVaultId}`}>
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">
-              Error Loading Region
-            </CardTitle>
-            <CardDescription>
-              Unable to load region details. Please try again later.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </Page>
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">
+            Error Loading Region
+          </CardTitle>
+          <CardDescription>
+            Unable to load region details. Please try again later.
+          </CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
 
   if (isLoading) {
     return (
-      <Page title="Back to region" backLink={`/regions/${regionVaultId}`}>
-        <div className="flex items-center justify-center py-20">
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Loading distribution interface...</span>
-          </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span>Loading distribution interface...</span>
         </div>
-      </Page>
+      </div>
     );
   }
 
   return (
-    <Page title="Back to region" backLink={`/regions/${regionVaultId}`}>
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Distribute Funds
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Distribute funds from {regionName} to project vaults
-          </p>
-        </div>
-
-        {!isOwner && (
-          <Card className="border-yellow-500/50 bg-yellow-500/10">
-            <CardHeader>
-              <CardTitle className="text-yellow-600 dark:text-yellow-500">
-                View Only
-              </CardTitle>
-              <CardDescription>
-                You are not the owner of this vault. You can view the
-                distribution interface but cannot execute distributions.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
-
-        <div className="h-[600px] border rounded-lg bg-muted/30">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            connectionLineType={ConnectionLineType.SmoothStep}
-            nodeTypes={nodeTypes}
-            // fitView
-            minZoom={0.1}
-            maxZoom={2}
-          >
-            <Background variant={BackgroundVariant.Dots} />
-            <Controls />
-            <Panel position="top-right" className="space-y-2">
-              <Dialog
-                open={isAddProjectOpen}
-                onOpenChange={setIsAddProjectOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add Project
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Select Project Vaults</DialogTitle>
-                    <DialogDescription>
-                      Choose one or more project vaults to distribute funds to.
-                      Click to add or remove projects from your distribution
-                      flow.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-1 mt-4">
-                    {projectVaults.length === 0 ? (
-                      <div className="text-center py-12">
-                        <p className="text-muted-foreground text-base">
-                          No project vaults available
-                        </p>
-                        <p className="text-sm text-muted-foreground/60 mt-2">
-                          Create a project vault first to distribute funds
-                        </p>
-                      </div>
-                    ) : (
-                      projectVaults.map((project) => {
-                        const projectMeta = project.metadata as
-                          | Record<string, any>
-                          | undefined;
-                        const isAdded = distributions.some(
-                          (d) =>
-                            d.vaultId.toLowerCase() === project.id.toLowerCase()
-                        );
-                        return (
-                          <Item
-                            key={project.id}
-                            variant={isAdded ? "muted" : "outline"}
-                            className={`cursor-pointer transition-all ${
-                              isAdded
-                                ? "border-green-500/50 bg-green-50/50 dark:bg-green-950/20"
-                                : "hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
-                            }`}
-                            onClick={() => toggleProject(project.id as Address)}
-                          >
-                            {projectMeta?.image && (
-                              <ItemMedia variant="image">
-                                <BannerImage
-                                  src={projectMeta.image}
-                                  alt={projectMeta?.title || "Project"}
-                                />
-                              </ItemMedia>
-                            )}
-                            <ItemContent>
-                              <ItemTitle>
-                                {projectMeta?.title || "Untitled Project"}
-                              </ItemTitle>
-                              <ItemDescription className="line-clamp-2">
-                                {projectMeta?.description ||
-                                  "No description available"}
-                              </ItemDescription>
-                            </ItemContent>
-                            <ItemActions>
-                              {isAdded ? (
-                                <span
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 whitespace-nowrap"
-                                  title="Click to remove"
-                                >
-                                  <svg
-                                    className="w-3.5 h-3.5"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>
-                                  Added
-                                </span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">
-                                  Click to add
-                                </span>
-                              )}
-                            </ItemActions>
-                          </Item>
-                        );
-                      })
-                    )}
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </Panel>
-            <Panel position="bottom-right">
-              <Card className="min-w-[400px]">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">
-                        Total Distribution
-                      </span>
-                      <span className="font-semibold text-lg">
-                        {totalDistribution.toFixed(2)} {tokenSymbol}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">
-                        Available Balance
-                      </span>
-                      <span>
-                        {formatUnits(balance?.assets ?? 0n, tokenDecimals)}{" "}
-                        {tokenSymbol}
-                      </span>
-                    </div>
-                    {totalDistributionWei > (balance?.assets ?? 0n) && (
-                      <p className="text-xs text-destructive">
-                        Total distribution exceeds available balance
-                      </p>
-                    )}
-                    <Button
-                      onClick={() => distribute.mutate()}
-                      loadingText="Distributing..."
-                      isLoading={distribute.isPending}
-                      iconRight={ArrowRight}
-                      disabled={
-                        !isOwner ||
-                        distributions.length === 0 ||
-                        totalDistribution === 0 ||
-                        totalDistributionWei > (balance?.assets ?? 0n) ||
-                        distribute.isPending
-                      }
-                      className="w-full"
-                    >
-                      Distribute Funds
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </Panel>
-          </ReactFlow>
-        </div>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Distribute Funds
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Distribute funds from {regionName} to project vaults
+        </p>
       </div>
-    </Page>
+
+      {!isOwner && (
+        <Card className="border-yellow-500/50 bg-yellow-500/10">
+          <CardHeader>
+            <CardTitle className="text-yellow-600 dark:text-yellow-500">
+              View Only
+            </CardTitle>
+            <CardDescription>
+              You are not the owner of this vault. You can view the distribution
+              interface but cannot execute distributions.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      <div className="h-[600px] border rounded-lg bg-muted/30">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          nodeTypes={nodeTypes}
+          // fitView
+          minZoom={0.1}
+          maxZoom={2}
+        >
+          <Background variant={BackgroundVariant.Dots} />
+          <Controls />
+          <Panel position="top-right" className="space-y-2">
+            <Dialog
+              open={isAddProjectOpen}
+              onOpenChange={(open) => {
+                setIsAddProjectOpen(open);
+                if (!open) setSearchQuery("");
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Project
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Select Project Vaults</DialogTitle>
+                  <DialogDescription>
+                    Choose one or more project vaults to distribute funds to.
+                    Click to add or remove projects from your distribution flow.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="relative mt-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search projects by name or description..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <div className="space-y-1 mt-4">
+                  {projectVaults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground text-base">
+                        No project vaults available
+                      </p>
+                      <p className="text-sm text-muted-foreground/60 mt-2">
+                        Create a project vault first to distribute funds
+                      </p>
+                    </div>
+                  ) : filteredProjectVaults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground text-base">
+                        No projects found
+                      </p>
+                      <p className="text-sm text-muted-foreground/60 mt-2">
+                        Try adjusting your search query
+                      </p>
+                    </div>
+                  ) : (
+                    filteredProjectVaults.map((project) => {
+                      const projectMeta = project.metadata as
+                        | Record<string, any>
+                        | undefined;
+                      const isAdded = distributions.some(
+                        (d) =>
+                          d.vaultId.toLowerCase() === project.id.toLowerCase()
+                      );
+                      return (
+                        <Item
+                          key={project.id}
+                          variant={isAdded ? "muted" : "outline"}
+                          className={`cursor-pointer transition-all ${
+                            isAdded
+                              ? "border-green-500/50 bg-green-50/50 dark:bg-green-950/20"
+                              : "hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
+                          }`}
+                          onClick={() => toggleProject(project.id as Address)}
+                        >
+                          {projectMeta?.image && (
+                            <ItemMedia variant="image">
+                              <BannerImage
+                                src={projectMeta.image}
+                                alt={projectMeta?.title || "Project"}
+                              />
+                            </ItemMedia>
+                          )}
+                          <ItemContent>
+                            <ItemTitle>
+                              {projectMeta?.title || "Untitled Project"}
+                            </ItemTitle>
+                            <ItemDescription className="line-clamp-2">
+                              {projectMeta?.description ||
+                                "No description available"}
+                            </ItemDescription>
+                          </ItemContent>
+                          <ItemActions>
+                            {isAdded ? (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 whitespace-nowrap"
+                                title="Click to remove"
+                              >
+                                <svg
+                                  className="w-3.5 h-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                                Added
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                Click to add
+                              </span>
+                            )}
+                          </ItemActions>
+                        </Item>
+                      );
+                    })
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </Panel>
+          <Panel position="bottom-right">
+            <Card className="min-w-[400px]">
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Total Distribution
+                    </span>
+                    <span className="font-semibold text-lg">
+                      {totalDistribution.toFixed(2)} {tokenSymbol}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">
+                      Available Balance
+                    </span>
+                    <span>
+                      {formatUnits(balance?.assets ?? 0n, tokenDecimals)}{" "}
+                      {tokenSymbol}
+                    </span>
+                  </div>
+                  {totalDistributionWei > (balance?.assets ?? 0n) && (
+                    <p className="text-xs text-destructive">
+                      Total distribution exceeds available balance
+                    </p>
+                  )}
+                  <Button
+                    onClick={() => distribute.mutate()}
+                    loadingText="Distributing..."
+                    isLoading={distribute.isPending}
+                    iconRight={ArrowRight}
+                    disabled={
+                      !isOwner ||
+                      distributions.length === 0 ||
+                      totalDistribution === 0 ||
+                      totalDistributionWei > (balance?.assets ?? 0n) ||
+                      distribute.isPending
+                    }
+                    className="w-full"
+                  >
+                    Distribute Funds
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </Panel>
+        </ReactFlow>
+      </div>
+    </div>
   );
 }

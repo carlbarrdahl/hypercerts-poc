@@ -114,6 +114,43 @@ const fundersQuery = gql`
 	}
 `;
 
+const fundingQuery = gql`
+	query Fundings(
+		$where: fundingFilter
+		$orderBy: String
+		$orderDirection: String
+		$before: String
+		$after: String
+		$limit: Int
+	) {
+		fundings(
+			where: $where
+			orderBy: $orderBy
+			orderDirection: $orderDirection
+			before: $before
+			after: $after
+			limit: $limit
+		) {
+			items {
+				id
+				vault
+				sender
+				receiver
+				assets
+				token
+				createdAt
+			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+				startCursor
+				endCursor
+			}
+		}
+	}
+`;
+
 const attestationsQuery = gql`
 	query Attestations(
 		$where: attestationFilter
@@ -186,6 +223,16 @@ export type Funder = {
 	createdAt: string;
 	updatedAt: string;
 };
+export type Funding = {
+	id: string;
+	vault: Address;
+	sender: Address;
+	receiver: Address;
+	assets: string;
+	token: Token;
+	createdAt: string;
+	updatedAt: string;
+};
 export type Attestation = {
 	id: string;
 	refUID: string;
@@ -239,7 +286,21 @@ export type VaultFilter = {
 	type_in?: string[];
 	type_not_in?: string[];
 };
-
+export type FundingFilter = {
+	AND?: FunderFilter[];
+	OR?: FunderFilter[];
+	vault?: string;
+	vault_in?: string[];
+	vault_not_in?: string[];
+	sender?: string;
+	sender_in?: string[];
+	sender_not_in?: string[];
+	receiver?: string;
+	receiver_in?: string[];
+	receiver_not_in?: string[];
+	assets_gte?: string;
+	assets_lte?: string;
+};
 export type AttestationFilter = {
 	AND?: AttestationFilter[];
 	OR?: AttestationFilter[];
@@ -275,7 +336,13 @@ export type ContributorOrderBy =
 	| 'shares'
 	| 'createdAt'
 	| 'updatedAt';
-
+export type FundingOrderBy =
+	| 'vault'
+	| 'address'
+	| 'assets'
+	| 'shares'
+	| 'createdAt'
+	| 'updatedAt';
 export type FunderOrderBy =
 	| 'vault'
 	| 'address'
@@ -303,6 +370,7 @@ export type Page<T> = {
 };
 export type ContributorPage = Page<Contributor>;
 export type FunderPage = Page<Funder>;
+export type FundingPage = Page<Funding>;
 export type VaultPage = Page<Vault>;
 export type AttestationPage = Page<Attestation>;
 export type Meta = {
@@ -350,6 +418,14 @@ export type FunderVariables = {
 	after?: string;
 	limit?: number;
 };
+export type FundingVariables = {
+	where?: FundingFilter;
+	orderBy?: FundingOrderBy;
+	orderDirection?: 'asc' | 'desc';
+	before?: string;
+	after?: string;
+	limit?: number;
+};
 export function createIndexer(chain: keyof typeof config) {
 	const url = config[chain]?.indexer;
 	if (!url) throw new Error('Indexer URL not found');
@@ -366,15 +442,9 @@ export function createIndexer(chain: keyof typeof config) {
 	return {
 		vault: {
 			query: async (variables: VaultsVariables = {}) => {
-				console.log('variables', variables);
 				return client
 					.query(vaultsQuery, variables)
 					.toPromise()
-					.then((r) => {
-						console.log('r', r);
-
-						return r;
-					})
 					.then((r) => mapTimestamps(r.data?.vaults ?? []) as VaultPage)
 					.catch((e) => {
 						console.error('error', e);
@@ -398,6 +468,14 @@ export function createIndexer(chain: keyof typeof config) {
 					.query(fundersQuery, variables)
 					.toPromise()
 					.then((r) => mapTimestamps(r.data?.funders ?? []) as FunderPage);
+			},
+		},
+		funding: {
+			query: async (variables: FundingVariables = {}) => {
+				return client
+					.query(fundingQuery, variables)
+					.toPromise()
+					.then((r) => mapTimestamps(r.data?.fundings ?? []) as FunderPage);
 			},
 		},
 		attestation: {
