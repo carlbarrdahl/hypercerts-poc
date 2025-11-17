@@ -162,7 +162,7 @@ export default function CertPage({
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative -mt-32">
             <Link
-              href="/certs"
+              href="/explore"
               className="inline-flex items-center gap-2 text-sm text-foreground hover:text-muted-foreground transition-colors mb-6 bg-background/80 backdrop-blur-sm px-3 py-2 rounded-md"
             >
               <ArrowLeft className="w-4 h-4" />

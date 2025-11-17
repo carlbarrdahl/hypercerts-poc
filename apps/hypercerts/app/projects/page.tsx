@@ -119,7 +119,7 @@ export default function CertsPage() {
                 Discover and support climate action projects
               </p>
             </div>
-            <Link href="/certs/create">
+            <Link href="/projects/create">
               <Button size="lg" className="gap-2">
                 <Plus className="w-4 h-4" />
                 Create Project
@@ -261,7 +261,7 @@ function ProjectCard({ vault }: { vault: any }) {
   const hasImage = vault.metadata?.image;
   console.log("Vault:", vault);
   return (
-    <Link href={`/certs/${vault.id}`}>
+    <Link href={`/projects/${vault.id}`}>
       <Card className="h-full hover:shadow-lg transition-shadow overflow-hidden group">
         <div className="aspect-[16/9] overflow-hidden bg-muted relative">
           {hasImage ? (

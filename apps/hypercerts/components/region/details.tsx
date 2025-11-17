@@ -332,7 +332,7 @@ export function RegionDetails({ id }: { id: Address }) {
                 />
 
                 <div className="space-y-2">
-                  <AllowanceCheck
+                  {/* <AllowanceCheck
                     tokenAddress={vault?.token?.address!}
                     amount={amountInWei}
                     spender={id!}
@@ -344,19 +344,14 @@ export function RegionDetails({ id }: { id: Address }) {
                       }}
                       disabled={!amount || amount <= 0 || deposit.isPending}
                       className="w-full"
+                      loadingText="Contributing..."
+                      isLoading={deposit.isPending}
                     >
-                      {deposit.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Contributing...
-                        </>
-                      ) : (
-                        "Contribute (Get Shares)"
-                      )}
+                      Contribute (Get Shares)
                     </Button>
-                  </AllowanceCheck>
+                  </AllowanceCheck> */}
 
-                  <Button
+                  {/* <Button
                     onClick={() => {
                       withdraw.mutate(amountInWei);
                       setAmount(null);
@@ -373,7 +368,7 @@ export function RegionDetails({ id }: { id: Address }) {
                     ) : (
                       "Withdraw"
                     )}
-                  </Button>
+                  </Button> */}
 
                   <AllowanceCheck
                     tokenAddress={vault?.token?.address!}
@@ -388,15 +383,10 @@ export function RegionDetails({ id }: { id: Address }) {
                       disabled={!amount || amount <= 0 || fund.isPending}
                       variant="secondary"
                       className="w-full"
+                      isLoading={fund.isPending}
+                      loadingText="Funding..."
                     >
-                      {fund.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Funding...
-                        </>
-                      ) : (
-                        "Fund (No Shares)"
-                      )}
+                      Fund
                     </Button>
                   </AllowanceCheck>
                 </div>
@@ -422,7 +412,7 @@ export function RegionDetails({ id }: { id: Address }) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Link href={`/regions/${id}/distribute`}>
+                  <Link href={`/distribute/${id}`}>
                     <Button variant="default" className="w-full">
                       Open Distribution Flow
                     </Button>

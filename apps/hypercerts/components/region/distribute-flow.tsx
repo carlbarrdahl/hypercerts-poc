@@ -14,6 +14,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
+import {
+  Item,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@workspace/ui/components/item";
 import { useAccount } from "wagmi";
 import { toast } from "sonner";
 import { Page } from "@/components/page";
@@ -60,7 +68,7 @@ const getLayoutedElements = (
   dagreGraph.setGraph({
     rankdir: direction,
     ranksep: 150,
-    nodesep: 100,
+    nodesep: 10,
   });
 
   nodes.forEach((node) => {
@@ -248,7 +256,6 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
   // Filter for project vaults only
   const projectVaults = useMemo(() => {
     if (!allVaults?.items) return [];
-    return allVaults.items;
     return allVaults.items.filter(
       (v) =>
         v.metadata?.type === "project" &&
@@ -296,15 +303,17 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
   // Check if user is owner
   const isOwner = address && vault?.owner === address.toLowerCase();
 
-  // Add a project to distribution
-  const addProject = useCallback(
+  // Toggle a project in/out of distribution
+  const toggleProject = useCallback(
     (vaultId: Address) => {
-      if (distributions.some((d) => d.vaultId === vaultId)) {
-        toast.error("Project already added");
-        return;
+      const isAdded = distributions.some((d) => d.vaultId === vaultId);
+      if (isAdded) {
+        setDistributions(distributions.filter((d) => d.vaultId !== vaultId));
+        toast.success("Project removed");
+      } else {
+        setDistributions([...distributions, { vaultId, amount: "" }]);
+        toast.success("Project added");
       }
-      setDistributions([...distributions, { vaultId, amount: "" }]);
-      setIsAddProjectOpen(false);
     },
     [distributions]
   );
@@ -345,16 +354,16 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
         throw new Error("No valid distributions to execute");
       }
 
-      // Execute all distributions
-      const results = await Promise.all(
-        validDistributions.map((dist) =>
-          sdk.vault.depositToVault(
-            regionVaultId,
-            dist.vaultId,
-            parseUnits(dist.amount, tokenDecimals)
-          )
-        )
-      );
+      // Execute distributions sequentially to avoid nonce conflicts
+      const results = [];
+      for (const dist of validDistributions) {
+        const result = await sdk.vault.depositToVault(
+          regionVaultId,
+          dist.vaultId,
+          parseUnits(dist.amount, tokenDecimals)
+        );
+        results.push(result);
+      }
 
       return results;
     },
@@ -616,16 +625,23 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Select Project Vault</DialogTitle>
+                    <DialogTitle>Select Project Vaults</DialogTitle>
                     <DialogDescription>
-                      Choose a project vault to distribute funds to
+                      Choose one or more project vaults to distribute funds to.
+                      Click to add or remove projects from your distribution
+                      flow.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-3 mt-4">
+                  <div className="space-y-1 mt-4">
                     {projectVaults.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-8">
-                        No project vaults available
-                      </p>
+                      <div className="text-center py-12">
+                        <p className="text-muted-foreground text-base">
+                          No project vaults available
+                        </p>
+                        <p className="text-sm text-muted-foreground/60 mt-2">
+                          Create a project vault first to distribute funds
+                        </p>
+                      </div>
                     ) : (
                       projectVaults.map((project) => {
                         const projectMeta = project.metadata as
@@ -636,53 +652,61 @@ export function DistributeFlow({ regionVaultId }: { regionVaultId: Address }) {
                             d.vaultId.toLowerCase() === project.id.toLowerCase()
                         );
                         return (
-                          <Card
+                          <Item
                             key={project.id}
-                            className={`cursor-pointer transition-colors hover:border-primary ${
-                              isAdded ? "opacity-50" : ""
+                            variant={isAdded ? "muted" : "outline"}
+                            className={`cursor-pointer transition-all ${
+                              isAdded
+                                ? "border-green-500/50 bg-green-50/50 dark:bg-green-950/20"
+                                : "hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
                             }`}
-                            onClick={() =>
-                              !isAdded && addProject(project.id as Address)
-                            }
+                            onClick={() => toggleProject(project.id as Address)}
                           >
-                            <CardHeader className="p-4">
-                              <div className="flex items-center gap-3">
-                                {projectMeta?.image && (
-                                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                                    <BannerImage
-                                      src={projectMeta.image}
-                                      alt={projectMeta?.title || "Project"}
+                            {projectMeta?.image && (
+                              <ItemMedia variant="image">
+                                <BannerImage
+                                  src={projectMeta.image}
+                                  alt={projectMeta?.title || "Project"}
+                                />
+                              </ItemMedia>
+                            )}
+                            <ItemContent>
+                              <ItemTitle>
+                                {projectMeta?.title || "Untitled Project"}
+                              </ItemTitle>
+                              <ItemDescription className="line-clamp-2">
+                                {projectMeta?.description ||
+                                  "No description available"}
+                              </ItemDescription>
+                            </ItemContent>
+                            <ItemActions>
+                              {isAdded ? (
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 whitespace-nowrap"
+                                  title="Click to remove"
+                                >
+                                  <svg
+                                    className="w-3.5 h-3.5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M5 13l4 4L19 7"
                                     />
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <CardTitle
-                                    className="text-base truncate"
-                                    title={
-                                      projectMeta?.title || "Untitled Project"
-                                    }
-                                  >
-                                    {projectMeta?.title || "Untitled Project"}
-                                  </CardTitle>
-                                  <p
-                                    className="text-xs text-muted-foreground line-clamp-2"
-                                    title={
-                                      projectMeta?.description ||
-                                      "No description"
-                                    }
-                                  >
-                                    {projectMeta?.description ||
-                                      "No description"}
-                                  </p>
-                                </div>
-                                {isAdded && (
-                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                    Added
-                                  </span>
-                                )}
-                              </div>
-                            </CardHeader>
-                          </Card>
+                                  </svg>
+                                  Added
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  Click to add
+                                </span>
+                              )}
+                            </ItemActions>
+                          </Item>
                         );
                       })
                     )}

@@ -299,7 +299,7 @@ function PathwayCard({ pathway }: { pathway: any }) {
 
   return (
     <Link
-      href={`/certs/${pathway.id}`}
+      href={`/solutions/${pathway.id}`}
       className="group block bg-background border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200"
     >
       <div className="aspect-[4/3] overflow-hidden bg-muted relative">
@@ -380,7 +380,7 @@ function ProjectCard({ project }: { project: any }) {
 
   return (
     <Link
-      href={`/certs/${project.id}`}
+      href={`/projects/${project.id}`}
       className="group block bg-background border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200"
     >
       <div className="aspect-[4/3] overflow-hidden bg-muted relative">

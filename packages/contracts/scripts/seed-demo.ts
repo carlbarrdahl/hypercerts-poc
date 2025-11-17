@@ -720,14 +720,20 @@ async function main() {
   // Add funds to pathway and region vaults (using .fund())
   console.log("\n\n💰 Funding pathway and region vaults...\n");
 
-  // Fund pathway vaults
+  // Fund pathway vaults (from multiple funders)
   console.log("Funding pathway vaults...");
   const pathwayFundConfigs = [
     {
       wallet: funder1Wallet,
       sdk: sdkFunder1,
-      amount: 10000n * 10n ** 18n,
+      amount: 5000n * 10n ** 18n,
       name: "Funder 1",
+    },
+    {
+      wallet: funder2Wallet,
+      sdk: sdkFunder2,
+      amount: 8000n * 10n ** 18n,
+      name: "Funder 2",
     },
   ];
 
@@ -746,14 +752,20 @@ async function main() {
     }
   }
 
-  // Fund region vaults
+  // Fund region vaults (from multiple funders)
   console.log("\nFunding region vaults...");
   const regionFundConfigs = [
     {
-      wallet: funder2Wallet,
-      sdk: sdkFunder2,
-      amount: 15000n * 10n ** 18n,
-      name: "Funder 2",
+      wallet: depositor1Wallet,
+      sdk: sdkDepositor1,
+      amount: 10000n * 10n ** 18n,
+      name: "Depositor 1 (as funder)",
+    },
+    {
+      wallet: depositor2Wallet,
+      sdk: sdkDepositor2,
+      amount: 12000n * 10n ** 18n,
+      name: "Depositor 2 (as funder)",
     },
   ];
 

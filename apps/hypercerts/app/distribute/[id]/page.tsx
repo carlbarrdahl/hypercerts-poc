@@ -4,7 +4,7 @@ import { Address } from "viem";
 export default async function DistributePage({
   params,
 }: {
-  params: { id: Promise<Address> };
+  params: Promise<{ id: Address }>;
 }) {
   const { id } = await params;
   return (

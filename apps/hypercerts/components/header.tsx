@@ -23,7 +23,7 @@ export function Header() {
         <Link href="/regions">
           <Button variant="link">Regions</Button>
         </Link>
-        <Link href="/certs">
+        <Link href="/projects">
           <Button variant="link">Projects</Button>
         </Link>
         {isConnected && (
@@ -31,9 +31,6 @@ export function Header() {
             <Button variant="link">My Impact</Button>
           </Link>
         )}
-        <Link href="/certs/create">
-          <Button variant="link">Create Project</Button>
-        </Link>
       </div>
       <LoginButton />
     </header>

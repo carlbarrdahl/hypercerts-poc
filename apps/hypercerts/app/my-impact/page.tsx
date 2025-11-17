@@ -473,7 +473,7 @@ function ProjectImpactCard({ project }: { project: any }) {
       : 0;
 
   return (
-    <Link href={`/certs/${vault.id}`}>
+    <Link href={`/projects/${vault.id}`}>
       <Card className="h-full hover:shadow-lg transition-shadow overflow-hidden group">
         <div className="aspect-[16/9] overflow-hidden bg-muted relative">
           {hasImage ? (
