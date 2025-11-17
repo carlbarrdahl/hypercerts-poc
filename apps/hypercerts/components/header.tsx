@@ -14,11 +14,17 @@ export function Header() {
         <h1 className="text-sm font-bold">Hyperfund</h1>
       </Link>
       <div className="w-full flex items-center justify-center gap-1">
+        <Link href="/explore">
+          <Button variant="link">Explore</Button>
+        </Link>
         <Link href="/solutions">
           <Button variant="link">Solutions</Button>
         </Link>
         <Link href="/regions">
           <Button variant="link">Regions</Button>
+        </Link>
+        <Link href="/certs">
+          <Button variant="link">Projects</Button>
         </Link>
         {isConnected && (
           <Link href="/my-impact">

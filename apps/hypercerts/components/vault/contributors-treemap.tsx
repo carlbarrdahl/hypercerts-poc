@@ -63,6 +63,7 @@ interface SingleTreemapProps {
   tileMethod: string;
   title: string;
   color: string;
+  formatAsCurrency?: boolean;
   margin?: { top: number; right: number; bottom: number; left: number };
 }
 
@@ -73,6 +74,7 @@ function SingleTreemap({
   tileMethod,
   title,
   color,
+  formatAsCurrency = false,
   margin = defaultMargin,
 }: SingleTreemapProps) {
   if (nodes.length === 0) {
@@ -164,7 +166,9 @@ function SingleTreemap({
                     >
                       <title>
                         {nodeData.address
-                          ? `${formatAddress(nodeData.address)}\nValue: ${formatUnits(BigInt(node.value ?? 0), 18)} USDC`
+                          ? formatAsCurrency
+                            ? `${formatAddress(nodeData.address)}\nValue: ${formatUnits(BigInt(node.value ?? 0), 18)} USDC`
+                            : `${formatAddress(nodeData.address)}\nShares: ${formatUnits(BigInt(node.value ?? 0), 18)}`
                           : ""}
                       </title>
                     </rect>
@@ -189,11 +193,15 @@ function SingleTreemap({
                           fontSize={11}
                           pointerEvents="none"
                         >
-                          {formatMoney(
-                            Number(formatUnits(BigInt(node.value ?? 0), 18)),
-                            "USD",
-                            0
-                          )}
+                          {formatAsCurrency
+                            ? formatMoney(
+                                Number(
+                                  formatUnits(BigInt(node.value ?? 0), 18)
+                                ),
+                                "USD",
+                                0
+                              )
+                            : `${Number(formatUnits(BigInt(node.value ?? 0), 18)).toLocaleString()} shares`}
                         </text>
                       </>
                     )}
@@ -300,6 +308,7 @@ export function ContributorsTreemap({ id }: ContributorsTreemapProps) {
                     tileMethod={tileMethod}
                     title="FUNDERS"
                     color={color2}
+                    formatAsCurrency={true}
                   />
                 ) : (
                   <div className="text-sm text-muted-foreground text-center py-12">
@@ -321,6 +330,7 @@ export function ContributorsTreemap({ id }: ContributorsTreemapProps) {
                     tileMethod={tileMethod}
                     title="CONTRIBUTORS"
                     color={color1}
+                    formatAsCurrency={false}
                   />
                 ) : (
                   <div className="text-sm text-muted-foreground text-center py-12">

@@ -86,11 +86,17 @@ export default function Page() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Link href="/solutions" className="group">
+              <Link href="/explore" className="group">
                 <div className="flex items-center gap-2 px-6 py-3 bg-foreground text-background rounded-full hover:bg-foreground/90 transition-all duration-200 shadow-lg hover:shadow-xl">
                   <Globe className="w-4 h-4" />
-                  <span className="text-sm font-medium">Explore Solutions</span>
+                  <span className="text-sm font-medium">Explore All</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
+                </div>
+              </Link>
+              <Link href="/solutions" className="group">
+                <div className="flex items-center gap-2 px-6 py-3 border border-border rounded-full hover:bg-muted/50 transition-colors duration-200">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-sm font-medium">View Solutions</span>
                 </div>
               </Link>
               <Link href="/regions" className="group">

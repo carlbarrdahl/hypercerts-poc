@@ -127,12 +127,11 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
      * @dev Owner can distribute funds to other vaults (e.g., from region to projects)
      * @param targetVault Address of the vault to deposit to
      * @param assets Amount of assets to deposit
-     * @return shares Number of shares received from the target vault
      */
     function depositToVault(
         address targetVault,
         uint256 assets
-    ) external nonReentrant returns (uint256 shares) {
+    ) external nonReentrant {
         require(msg.sender == config.owner, "HyperVault: only owner");
         require(targetVault != address(0), "HyperVault: zero address");
         require(
@@ -148,12 +147,8 @@ contract HyperVault is Initializable, ERC4626Upgradeable, ReentrancyGuard {
         // Approve the target vault to spend our assets
         IERC20(asset()).approve(targetVault, assets);
 
-        // Call deposit on the target vault, receiving shares to this vault
-        shares = HyperVault(targetVault).deposit(assets, address(this));
-
-        emit DepositedToVault(targetVault, assets, shares);
-
-        return shares;
+        // Call fund on the target vault, receiving shares to this vault
+        HyperVault(targetVault).fund(assets, address(this));
     }
 
     /**

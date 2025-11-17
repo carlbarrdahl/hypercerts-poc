@@ -681,13 +681,7 @@
             }
           ],
           "name": "depositToVault",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "shares",
-              "type": "uint256"
-            }
-          ],
+          "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
         },
