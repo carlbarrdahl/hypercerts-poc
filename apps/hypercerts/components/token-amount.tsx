@@ -36,12 +36,14 @@ export const Amount = ({
   hideSymbol?: boolean;
 }) => {
   if (!amount) return "--";
-  const formattedAmount = formatNumber(
-    parseFloat(formatUnits(BigInt(amount), decimals))
-  );
+  const numericValue = parseFloat(formatUnits(BigInt(amount), decimals));
+  const formattedAmount = formatNumber(numericValue, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   return (
     <span className={cn("inline-flex items-baseline gap-1", className)}>
-      <span className="">{formattedAmount}</span>
+      <span>{formattedAmount}</span>
       {!hideSymbol && <span className="text-[10px]">{symbol}</span>}
     </span>
   );

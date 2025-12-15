@@ -276,8 +276,8 @@ export function Attestations({ id }: { id: Address }) {
                       {metadata?.title || "—"}
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <p className="text-sm text-muted-foreground truncate">
-                        {metadata?.description || "—"}
+                      <p className="text-muted-foreground truncate">
+                        <Markdown>{metadata?.description || "—"}</Markdown>
                       </p>
                     </TableCell>
                     <TableCell>

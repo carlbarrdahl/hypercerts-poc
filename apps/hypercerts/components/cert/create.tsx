@@ -66,6 +66,24 @@ At the junction of Mediterranean and Central Europe lies a landscape sparsely co
   geoJSON: "https://www.oneearth.org/geoData/bioregions/PA10.kml",
 };
 
+const AMAZON_RESTORATION_PRESET = {
+  title: "Amazon Rainforest Restoration",
+  description: `Planting 100,000 native trees across 200 hectares of degraded Amazon rainforest in partnership with Indigenous communities. This project will restore biodiversity and sequester carbon.
+
+The project establishes community nurseries producing native seedlings from 30 different species including Brazil nut, mahogany, and rubber trees. All planting locations are GPS tracked to monitor long-term success and survival rates.`,
+  image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800",
+  geoJSON: "https://www.oneearth.org/geoData/bioregions/NT20.kml",
+};
+
+const CORAL_REEF_PRESET = {
+  title: "Coral Reef Restoration - Borneo",
+  description: `Restoring 5 hectares of damaged coral reef in Borneo through coral gardening and transplantation. Working with local fishing communities to establish marine protected areas.
+
+Building underwater coral nurseries with thousands of coral fragments from 15+ species. Monthly monitoring shows excellent growth rates and survival, helping to restore critical marine ecosystems.`,
+  image: "https://images.unsplash.com/photo-1546026423-cc4642628d2b?w=800",
+  geoJSON: "https://www.oneearth.org/geoData/bioregions/IM16.kml",
+};
+
 export function CreateCert() {
   const { sdk } = useHypercerts();
   const queryClient = useQueryClient();
@@ -106,7 +124,7 @@ export function CreateCert() {
     onSuccess: (cert) => {
       console.log("cert", cert);
       queryClient.invalidateQueries({ queryKey: ["vaults"] });
-      router.push(`/certs/${cert}`);
+      router.push(`/projects/${cert}`);
       toast.success("Vault created successfully");
     },
     onError: (error) => {
@@ -130,18 +148,18 @@ export function CreateCert() {
     create.mutate(config);
   };
 
-  const loadPreset = () => {
-    form.setValue("metadata.title", PA10_PRESET.title);
-    form.setValue("metadata.description", PA10_PRESET.description);
-    form.setValue("metadata.image", PA10_PRESET.image);
-    form.setValue("metadata.geoJSON", PA10_PRESET.geoJSON);
-    toast.success("PA10 preset loaded");
+  const loadPreset = (preset: typeof PA10_PRESET, name: string) => {
+    form.setValue("metadata.title", preset.title);
+    form.setValue("metadata.description", preset.description);
+    form.setValue("metadata.image", preset.image);
+    form.setValue("metadata.geoJSON", preset.geoJSON);
+    toast.success(`${name} preset loaded`);
   };
 
   return (
     <Card className="max-w-2xl space-y-6">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="space-y-4">
           <div>
             <CardTitle className="text-lg font-medium">
               Create Certificate
@@ -150,14 +168,34 @@ export function CreateCert() {
               Create a new hypercert certificate for your bioregion or project.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={loadPreset}
-          >
-            Load PA10 Preset
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => loadPreset(PA10_PRESET, "PA10 Region")}
+            >
+              Load PA10 Bioregion
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                loadPreset(AMAZON_RESTORATION_PRESET, "Amazon Restoration")
+              }
+            >
+              Load Amazon Project
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => loadPreset(CORAL_REEF_PRESET, "Coral Reef")}
+            >
+              Load Coral Reef Project
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

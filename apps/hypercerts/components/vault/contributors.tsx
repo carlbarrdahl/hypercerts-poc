@@ -69,11 +69,15 @@ export function ContributorsList({ id }: { id: Address }) {
             </TableHeader>
             <TableBody>
               {data?.items?.map((item, i) => {
-                const shares = BigInt(item.shares) ?? 0n;
+                const shares = item.shares ? BigInt(item.shares) : 0n;
+                const totalShares = balance?.shares ?? 0n;
                 const inPercentage =
-                  (Number(shares) / Number(balance?.shares)) * 100;
-
-                const price = balance?.price ?? 1n;
+                  totalShares > 0n
+                    ? (Number(shares) / Number(totalShares)) * 100
+                    : 0;
+                // Calculate value: shares * price / 10^18 (price is scaled)
+                const price = balance?.price ?? 10n ** 18n;
+                const value = (shares * price) / 10n ** 18n;
                 return (
                   <TableRow key={i}>
                     <TableCell className="font-mono text-sm">
@@ -84,7 +88,7 @@ export function ContributorsList({ id }: { id: Address }) {
                         <Amount amount={item.shares} />
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {balance?.shares! > 0
+                        {totalShares > 0n
                           ? `${inPercentage.toFixed(2)}%`
                           : "--"}
                       </div>
@@ -94,7 +98,7 @@ export function ContributorsList({ id }: { id: Address }) {
                     </TableCell> */}
                     <TableCell className="text-right">
                       <Amount
-                        amount={shares * price}
+                        amount={value}
                         symbol={vaultData?.token?.symbol}
                       />
                     </TableCell>

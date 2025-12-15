@@ -120,6 +120,7 @@ export type VaultMethods = {
 	isChildVault: (id: Address, child: Address) => Promise<boolean>;
 	getHierarchy: (id: Address) => Promise<VaultHierarchy>;
 	getFullTree: (rootId: Address) => Promise<VaultTreeNode>;
+	previewDeposit: (id: Address, assets: bigint) => Promise<bigint>;
 };
 
 export type CertMethods = {
@@ -304,8 +305,11 @@ export class HypercertsSDK {
 					.read.totalSupply()
 					.then((s) => s as bigint);
 
-				// Avoid division by zero when vault has no shares yet
-				const price = shares > 0n ? assets / shares : 0n;
+				// Calculate price with decimal precision
+				// Price = assets/shares, but we need to preserve decimals
+				// Since both are 18 decimals, their ratio should also be expressed in 18 decimals
+				const DECIMALS = 10n ** 18n;
+				const price = shares > 0n ? (assets * DECIMALS) / shares : DECIMALS;
 
 				return { assets, shares, price } as {
 					assets: bigint;
@@ -393,6 +397,11 @@ export class HypercertsSDK {
 
 				return buildTree(rootId);
 			},
+			previewDeposit: async (id: Address, assets: bigint): Promise<bigint> => {
+				return this.#vault(getAddress(id))
+					.read.previewDeposit([assets])
+					.then((shares) => shares as bigint);
+			},
 		};
 	}
 
@@ -423,11 +432,11 @@ export class HypercertsSDK {
 			});
 			const logs = parseEventLogs({ abi, logs: receipt.logs });
 			const event: any = logs.find((log: any) => log.eventName === eventName);
-			
+
 			if (!event) {
 				throw new Error(`Event ${eventName} not found in transaction logs`);
 			}
-			
+
 			return event.args as T;
 		} catch (err: any) {
 			if (err instanceof BaseError) {

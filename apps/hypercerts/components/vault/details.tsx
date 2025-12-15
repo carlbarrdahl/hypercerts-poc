@@ -249,7 +249,10 @@ export function VaultDetails({ id }: { id: Address }) {
                   Price per Share
                 </span>
                 <span className="font-medium">
-                  {balance?.price} {vault?.token?.symbol}
+                  <Amount
+                    amount={balance?.price}
+                    symbol={vault?.token?.symbol}
+                  />
                 </span>
               </div>
             </CardContent>

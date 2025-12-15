@@ -12,12 +12,14 @@ import bbox from "@turf/bbox";
 export function Map({
   geoJson,
   height = 400,
+  zoom = 3,
 }: {
   geoJson?: GeoJSON.FeatureCollection<
     GeoJSON.Geometry | null,
     GeoJSON.GeoJsonProperties
   >;
   height?: number;
+  zoom?: number;
 }) {
   const { map } = useMap();
 
@@ -31,6 +33,7 @@ export function Map({
       map.fitBounds([minLng, minLat, maxLng, maxLat], {
         padding: 40,
         duration: 1000,
+        zoom: 12,
       });
     }
   }, [map, geoJson]);
@@ -44,7 +47,7 @@ export function Map({
       initialViewState={{
         longitude: 0,
         latitude: 20,
-        zoom: 3,
+        zoom,
       }}
       style={{ width: "100%", height }}
       mapStyle="mapbox://styles/mapbox/outdoors-v12"

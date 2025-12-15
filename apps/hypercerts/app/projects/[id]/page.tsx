@@ -20,6 +20,7 @@ import {
   TrendingUp,
   ExternalLink,
   Share2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
@@ -53,6 +54,9 @@ import { PathwaySelector } from "@/components/pathway-selector";
 import { oneEarthFramework } from "@/lib/pathway-data";
 import { findPathwayBySlug } from "@/lib/pathway-utils";
 import { Input } from "@workspace/ui/components/input";
+import { Markdown } from "@/components/markdown";
+import { Map } from "@/components/map";
+import { useFetchKML } from "@/hooks/use-fetch-kml";
 
 export default function CertPage({
   params,
@@ -120,6 +124,10 @@ export default function CertPage({
       vault.metadata?.type === "project");
   const isProjectOwner = address && vault?.owner === address;
 
+  // Fetch GeoJSON for map
+  const geoJSONUrl = vault?.metadata?.geoJSON as string | undefined;
+  const geoJSON = JSON.parse(geoJSONUrl ?? "null");
+  console.log(geoJSON, vault?.metadata);
   // Get pathway data - metadata.pathway contains the pathway name
   const pathwayName = vault?.metadata?.pathway as string | undefined;
   const pathwayData = pathwayName
@@ -137,7 +145,7 @@ export default function CertPage({
       toast.success("Link copied to clipboard!");
     }
   };
-
+  console.log(balance);
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -189,10 +197,10 @@ export default function CertPage({
                     {vault?.metadata?.title || "Untitled Project"}
                   </h1>
 
-                  <p className="text-lg text-muted-foreground mb-4">
+                  <Markdown>
                     {vault?.metadata?.description ||
                       "No description available."}
-                  </p>
+                  </Markdown>
 
                   <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                     {vault?.metadata?.region && (
@@ -251,7 +259,10 @@ export default function CertPage({
                     Price/Share
                   </div>
                   <div className="text-lg font-semibold">
-                    {balance?.price} {vault?.token?.symbol}
+                    <Amount
+                      amount={balance?.price}
+                      symbol={vault?.token?.symbol}
+                    />
                   </div>
                 </div>
                 <div>
@@ -282,6 +293,18 @@ export default function CertPage({
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Map */}
+            {geoJSONUrl &&
+              (geoJSON ? (
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <Map zoom={8} geoJson={geoJSON} height={400} />
+                </div>
+              ) : (
+                <div className="h-96 flex items-center justify-center bg-muted rounded-lg border border-border">
+                  <p className="text-muted-foreground">Map data unavailable</p>
+                </div>
+              ))}
+
             {/* Linked Pathway */}
             {pathwayData && (
               <Card>
@@ -377,6 +400,19 @@ function FundingSection({ id, vault, balance, creator }: any) {
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState<number | null>(null);
 
+  const amountInWei = parseUnits(
+    String(amount ?? 0),
+    vault?.token?.decimals ?? 18
+  );
+
+  // Preview how many shares the deposit will mint
+  const { data: previewShares } = useQuery({
+    queryKey: ["previewDeposit", id, amountInWei.toString()],
+    queryFn: () => sdk?.vault.previewDeposit(id, amountInWei) ?? null,
+    enabled: Boolean(sdk && id && amountInWei > 0n),
+  });
+
+  console.log("previewShares", previewShares);
   const onSuccess = async () => {
     setTimeout(() => queryClient.invalidateQueries({ queryKey: [] }), 200);
     setAmount(null);
@@ -391,8 +427,6 @@ function FundingSection({ id, vault, balance, creator }: any) {
     mutationFn: async (wei: bigint) => sdk?.vault.fund(id, wei, true),
     onSuccess,
   });
-
-  const amountInWei = parseUnits(String(amount ?? 0), vault?.token?.decimals!);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -423,7 +457,7 @@ function FundingSection({ id, vault, balance, creator }: any) {
               Price per Share
             </span>
             <span className="font-medium">
-              {balance?.price} {vault?.token?.symbol}
+              <Amount amount={balance?.price} symbol={vault?.token?.symbol} />
             </span>
           </div>
           <div className="pt-3">
@@ -461,6 +495,13 @@ function FundingSection({ id, vault, balance, creator }: any) {
                 value={amount ?? ""}
                 onChange={(e) => setAmount(Number(e.target.value) || null)}
               />
+              {previewShares && previewShares > 0n && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Calling deposit will give you{" "}
+                  <Amount amount={previewShares} />
+                  shares
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">

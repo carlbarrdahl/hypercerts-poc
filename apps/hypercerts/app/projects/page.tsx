@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import { Markdown } from "@/components/markdown";
 
 type ViewMode = "grid" | "list";
 type FilterCategory = "all" | string;
@@ -287,7 +288,9 @@ function ProjectCard({ vault }: { vault: any }) {
             {vault.metadata?.title || "Untitled Project"}
           </CardTitle>
           <CardDescription className="line-clamp-2">
-            {vault.metadata?.description || "No description available"}
+            <Markdown>
+              {vault.metadata?.description || "No description available"}
+            </Markdown>
           </CardDescription>
         </CardHeader>
 

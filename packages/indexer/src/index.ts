@@ -34,16 +34,19 @@ ponder.on("HyperVaultFactory:Created", async ({ event, context }) => {
   const [decimals, symbol] = await fetchToken(asset, context.client);
   console.log(event.args);
   const metadata = await fetchMetadata(metadataURI);
-  await context.db.insert(vault).values({
-    id,
-    owner,
-    parent: parent === zeroAddress ? null : parent,
-    token: { address: asset, symbol, decimals },
-    percent,
-    metadata,
-    type: metadata.type || null,
-    createdAt: toTimestamp(event.block.timestamp),
-  });
+  await context.db
+    .insert(vault)
+    .values({
+      id,
+      owner,
+      parent: parent === zeroAddress ? null : parent,
+      token: { address: asset, symbol, decimals },
+      percent,
+      metadata,
+      type: metadata.type || null,
+      createdAt: toTimestamp(event.block.timestamp),
+    })
+    .onConflictDoNothing();
 });
 
 ponder.on("HyperVault:Deposit", async ({ event, context }) => {
@@ -69,7 +72,7 @@ ponder.on("HyperVault:Deposit", async ({ event, context }) => {
   });
 
   // Track depositors as contributors (they received shares for their assets)
-  // NOTE: Depositors are NOT funders - they get shares in return for assets
+  // NOTE: Only track assets here - shares are tracked via the Transfer event (mint from zero address)
   await context.db
     .insert(contributor)
     .values({
@@ -77,7 +80,7 @@ ponder.on("HyperVault:Deposit", async ({ event, context }) => {
       vault: id,
       address: owner,
       assets,
-      shares,
+      shares: 0n, // Don't track shares here - Transfer event will handle it
       token,
       createdAt: toTimestamp(event.block.timestamp),
     })
@@ -85,7 +88,7 @@ ponder.on("HyperVault:Deposit", async ({ event, context }) => {
       address: owner,
       vault: id,
       assets: (row.assets ?? 0n) + BigInt(assets),
-      shares: (row.shares ?? 0n) + BigInt(shares),
+      // Don't update shares here - Transfer event handles share tracking
       updatedAt: toTimestamp(event.block.timestamp),
     }));
 });
